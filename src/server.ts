@@ -4,7 +4,7 @@ import path from "node:path";
 import { runFlow, PRICE, FEE } from "./runtime.js";
 import { circleConfigured, usdcBalance, WALLETS } from "./circle.js";
 import { saveSearch, listSearches, getSearch, clearSearches } from "./db.js";
-import { ucwConfigured, initUser, listWallets, transferChallenge, W3S_APP_ID } from "./ucw.js";
+import { ucwConfigured, initUser, listWallets, transferChallenge, userUsdc, W3S_APP_ID } from "./ucw.js";
 
 const app = express();
 app.use(express.json());
@@ -18,6 +18,10 @@ app.post("/api/ucw/init", async (req, res) => {
 });
 app.get("/api/ucw/wallets/:userId", async (req, res) => {
   try { res.json(await listWallets(req.params.userId)); }
+  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+app.get("/api/ucw/balance/:userId", async (req, res) => {
+  try { res.json(await userUsdc(req.params.userId)); }
   catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
 });
 app.post("/api/ucw/pay-challenge", async (req, res) => {

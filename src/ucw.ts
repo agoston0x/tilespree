@@ -53,6 +53,21 @@ export async function listWallets(userId: string) {
   }));
 }
 
+// Signed-in user's USDC balance + wallet address (for the top bar).
+export async function userUsdc(userId: string) {
+  const tok = await userToken(userId);
+  const { data: ws } = await client().listWallets({ userToken: tok.userToken });
+  const w = ws?.wallets?.[0];
+  if (!w) return { balance: 0, address: null, blockchain: null };
+  let balance = 0;
+  try {
+    const { data } = await client().getWalletTokenBalance({ userToken: tok.userToken, id: w.id } as any);
+    const b = (data?.tokenBalances || []).find((t: any) => (t.token?.symbol || "").toUpperCase() === "USDC");
+    balance = b ? Number(b.amount) : 0;
+  } catch { /* no token account yet */ }
+  return { balance, address: w.address, blockchain: w.blockchain };
+}
+
 // Issue a transaction-signing challenge: user wallet -> destination (escrow).
 export async function transferChallenge(userId: string, walletId: string, tokenId: string, destinationAddress: string, amount: number) {
   const tok = await userToken(userId);

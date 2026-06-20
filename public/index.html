@@ -21,22 +21,25 @@
   .brand{display:flex;align-items:center;gap:10px}
   .brand .tag{font-size:11px;color:var(--accent);background:rgba(242,58,18,.08);border-radius:6px;padding:2px 7px}
   /* enamel-sign logo (recreated from tilespree.png) */
-  .logo{position:relative;background:#f23a12;border-radius:5px;padding:6px 11px 8px;transform:rotate(-1.5deg);
-    box-shadow:0 4px 14px rgba(242,58,18,.32);line-height:.84}
-  .logo span{display:block;color:#fff;font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;letter-spacing:-.01em;text-shadow:0 1px 0 rgba(0,0,0,.12)}
-  .logo span b{display:inline-block;font-weight:900}
-  .logo .l1{font-size:17px;transform:rotate(-2deg)}
-  .logo .l2{font-size:19px;transform:rotate(1.5deg);margin-left:3px}
-  .logo span b:nth-child(2n){transform:rotate(5deg) translateY(-1.5px)}
-  .logo span b:nth-child(3n){transform:rotate(-6deg) translateY(1px)}
-  .logo span b:nth-child(4n){transform:rotate(3deg) translateY(-1px)}
+  .logo{position:relative;background:#f23a12;border-radius:5px;padding:7px 14px 9px;line-height:.82;
+    transform:perspective(460px) rotateY(-17deg) rotate(-1deg);transform-origin:left center;
+    box-shadow:0 5px 16px rgba(242,58,18,.34)}
+  .logo span{display:block;color:#fff;font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;
+    font-weight:900;letter-spacing:-.01em;text-shadow:0 1px 0 rgba(0,0,0,.14)}
+  .logo span b{display:inline-block}            /* letters straight, just inline */
+  .logo .l1{font-size:18px}
+  .logo .l2{font-size:20px}
   .logo i{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
-  .logo .b1{top:5px;right:6px}.logo .b2{bottom:6px;left:6px}
-  .logo .b3{top:7px;left:8px;background:#bfe34a;box-shadow:0 0 0 1.5px #fff}
+  .logo .b1{top:5px;right:7px}.logo .b2{bottom:6px;left:7px}
+  .logo .b3{bottom:6px;right:7px;background:#bfe34a;box-shadow:0 0 0 1.5px #fff}   /* moved off the text */
   .spacer{flex:1}
   .chip{display:flex;flex-direction:column;align-items:flex-end;font-size:11px;color:var(--muted);line-height:1.25}
   .chip b{font-size:14px;color:var(--ink);font-weight:620}
   .chip.spent b{color:var(--err)} .chip.left b{color:var(--ok)} .chip.locked b{color:#c98a14}
+  .topgroup{display:flex;align-items:center;gap:12px}
+  .freebadge{font-size:12px;font-weight:600;color:var(--accent);background:rgba(242,58,18,.08);border-radius:8px;padding:5px 10px}
+  .signin{padding:8px 14px;font-size:13px;border-radius:9px}
+  @media(max-width:600px){.chip span{display:none}.chip b{font-size:13px}.topgroup{gap:8px}}
   .wrap{width:100%;max-width:1040px;margin:0 auto;padding:26px 22px 90px}
   .sub{color:var(--muted);margin:0 0 22px;font-size:14px;text-align:center}
   .narrow{max-width:760px;margin-left:auto;margin-right:auto}
@@ -62,8 +65,8 @@
   #go{padding:16px 22px;font-size:16px}
   /* past-search grid — full width, max 4/row */
   .hist-head{margin:6px 0 14px}.hist-head h3{margin:0}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-  @media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}            /* mobile-first: 2/row */
+  @media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr);gap:14px}} /* desktop: 4/row */
   .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:16px;overflow:hidden;
     cursor:pointer;background:#fff;display:flex;flex-direction:column;justify-content:flex-end;
     transition:transform .12s,box-shadow .12s}
@@ -103,16 +106,20 @@
   .srcs li{padding:7px 0;border-top:1px solid var(--line);font-size:14px}
   .srcs a{text-decoration:none;font-weight:540}.srcs .u{display:block;color:var(--muted);font-size:12px;margin-top:1px}
   .findings{position:relative}
-  .findings.clamped{max-height:260px;overflow:hidden}
+  .findings.clamped{max-height:130px;overflow:hidden}
   .findings.clamped::after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,#fff)}
   .showmore{margin-top:12px}
+  /* result layout: deck above findings when opened from a tile */
+  #result{display:flex;flex-direction:column}
+  #result #backBtn{order:0}#result #flow{order:1}#result #answerCard{order:2}#result #deckSection{order:3}
+  #result.deck-top #deckSection{order:1}#result.deck-top #answerCard{order:2}
   /* deck section */
   #deckSection{margin-bottom:16px}
   .deckph{height:440px;border:1.5px dashed #d8d2c8;border-radius:18px;display:grid;place-items:center;text-align:center;
     background:linear-gradient(135deg,rgba(91,83,255,.05),rgba(210,85,63,.05))}
   .deckph .cta b{display:block;font-size:16px;color:var(--ink);margin-bottom:4px;font-weight:640}
   .deckph .cta span{display:block;color:var(--muted);font-size:13px;margin-bottom:16px}
-  .deckwrap{position:relative;height:440px;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+  .deckwrap{position:relative;height:min(46vh,420px);min-height:260px;border:1px solid var(--line);border-radius:18px;overflow:hidden;
     background:#fff;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:box-shadow .2s}
   .deckwrap.maximized{position:fixed;inset:3vh 2vw;height:auto;z-index:95;box-shadow:0 24px 70px rgba(0,0,0,.4)}
   #backdrop{position:fixed;inset:0;background:rgba(15,19,15,.6);backdrop-filter:blur(4px);z-index:94;display:none}
@@ -154,9 +161,15 @@
     <div class="logo" title="tile spree"><span class="l1"><b>t</b><b>i</b><b>l</b><b>e</b></span><span class="l2"><b>s</b><b>p</b><b>r</b><b>e</b><b>e</b></span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
   </div>
   <div class="spacer"></div>
-  <div class="chip spent"><span>Spent</span><b id="spent">—</b></div>
-  <div class="chip locked"><span>Locked (escrow)</span><b id="locked">—</b></div>
-  <div class="chip left"><span>Remaining</span><b id="remaining">—</b></div>
+  <div id="guestBar" class="topgroup">
+    <span class="freebadge" id="freeBadge">3 free searches</span>
+    <button id="signInBtn" class="signin">Sign in</button>
+  </div>
+  <div id="userBar" class="topgroup hidden">
+    <div class="chip"><span>Free left</span><b id="freeLeft">3</b></div>
+    <div class="chip left"><span>Wallet</span><b id="walletBal">—</b></div>
+    <div class="chip locked"><span>Escrow</span><b id="escrowBal">0.00 USDC</b></div>
+  </div>
 </div>
 
 <div class="wrap">
@@ -236,10 +249,22 @@ let LAST = null, deckData = null;
 const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
 const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
 const setBal = (b) => {
-  if (b.spent != null) $("#spent").textContent = fmt(b.spent);
-  if (b.locked != null) $("#locked").textContent = fmt(b.locked);
-  if (b.remaining != null) $("#remaining").textContent = fmt(b.remaining);
+  if (b.locked != null) $("#escrowBal").textContent = fmt(b.locked);
+  if (b.remaining != null) $("#walletBal").textContent = fmt(b.remaining);
 };
+// Top-bar auth/free state: guest (3 free + Sign in) vs signed-in (free left, wallet, escrow).
+function updateAuthUI(){
+  const used = +(localStorage.getItem("tilespree.freeUsed")||0);
+  const left = Math.max(0, 3 - used);
+  if (signedIn()){
+    $("#guestBar").classList.add("hidden"); $("#userBar").classList.remove("hidden");
+    $("#freeLeft").textContent = left;
+    fetch("/api/ucw/balance/"+userId).then(r=>r.json()).then(b=>{ if(b&&b.balance!=null) $("#walletBal").textContent = fmt(b.balance); }).catch(()=>{});
+  } else {
+    $("#userBar").classList.add("hidden"); $("#guestBar").classList.remove("hidden");
+    $("#freeBadge").textContent = left + " free searches";
+  }
+}
 const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
 const ago = (ts)=>{const s=(Date.now()-ts)/1000;
@@ -253,11 +278,7 @@ function setView(v, sy){
 }
 $("#backBtn").onclick = () => setView("lander");
 
-// ---- Balance on load ----
-fetch("/api/balance").then(r=>r.json()).then(b=>{
-  if (b.configured) setBal({spent:0,locked:0,remaining:b.remaining});
-  else { $("#spent").textContent=$("#locked").textContent=$("#remaining").textContent="—"; }
-}).catch(()=>{});
+// (top-bar state set by updateAuthUI() on load — see bottom of script)
 
 // ---- Render findings + deck section ----
 function showResult(d, opts){
@@ -279,13 +300,15 @@ function showResult(d, opts){
   $("#findings").classList.toggle("clamped", clamp);
   $("#showMore").classList.toggle("hidden", !clamp);
   $("#showMore").textContent = "Show more";
-  // deck section: placeholder by default; auto-build+maximize when opening a tile
+  // deck section: placeholder by default; auto-build inline when opening a tile
   $("#deckSection").classList.toggle("hidden", !hasSrc);
+  $("#result").classList.toggle("deck-top", !!opts.autoDeck); // slideshow above findings on tile-open
   resetDeckToPlaceholder();
-  if (opts.autoDeck && hasSrc) { buildDeck(d); maximizeDeck(); }
+  if (opts.autoDeck && hasSrc) { buildDeck(d); }
   setView("result");
 }
 $("#showMore").onclick = () => {
+  if (!signedIn()) { openAuth(); return; }   // expanding full findings requires sign-in
   const c = $("#findings").classList.toggle("clamped");
   $("#showMore").textContent = c ? "Show more" : "Show less";
 };
@@ -336,10 +359,12 @@ const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
 function openAuth(){ authSt(""); $("#authModal").classList.add("on"); }
 function closeAuth(){ $("#authModal").classList.remove("on"); }
 $("#authClose").onclick = closeAuth;
+$("#signInBtn").onclick = openAuth;
 $("#authModal").addEventListener("click",e=>{ if(e.target.id==="authModal")closeAuth(); });
 function finishAuth(){
   localStorage.setItem("tilespree.signedin", userId);
   authSt("You're in ✓","ok"); $("#authGo").disabled=false;
+  updateAuthUI();
   setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 500);
 }
 $("#authGo").onclick = async () => {
@@ -383,7 +408,8 @@ function doRun(q){
   });
   es.addEventListener("done",(e)=>{
     const d=JSON.parse(e.data);
-    if(d.economics){ $("#spent").textContent=fmt(d.economics.spent); $("#remaining").textContent=fmt(d.economics.remaining); }
+    if(d.economics){ $("#walletBal").textContent=fmt(d.economics.remaining); $("#escrowBal").textContent=fmt(0); }
+    const used=+(localStorage.getItem("tilespree.freeUsed")||0)+1; localStorage.setItem("tilespree.freeUsed",used); updateAuthUI();
     if(d.result){ showResult(d,{clamp:false,autoDeck:false,live:true}); setTimeout(()=>$("#deckSection").scrollIntoView({behavior:"smooth",block:"center"}),150); }
     es.close(); go.disabled=false;
   });
@@ -476,6 +502,7 @@ document.addEventListener("keydown",(e)=>{
 
 qEl.addEventListener("keydown",(e)=>{ if(e.key==="Enter")go.click(); });
 renderHistory();
+updateAuthUI();
 </script>
 </body>
 </html>
