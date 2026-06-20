@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>qgent · passkey wallet</title>
+<style>
+  body{margin:0;background:#fbfaf8;color:#15130f;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
+    display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+  .card{background:#fff;border:1px solid #ece8e1;border-radius:18px;padding:28px;max-width:460px;width:100%;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  h1{font-size:20px;margin:0 0 4px;letter-spacing:-.02em}.sub{color:#8b857c;margin:0 0 20px;font-size:14px}
+  button{background:#5b53ff;color:#fff;border:0;border-radius:11px;padding:14px 18px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
+  button:disabled{opacity:.45}
+  .row{margin-top:16px;font-size:13px}.k{color:#8b857c}.v{font-family:ui-monospace,Menlo,monospace;font-size:12px;word-break:break-all}
+  .ok{color:#1f9d63}.err{color:#d2553f}
+  pre{background:#f7f5f1;border-radius:10px;padding:12px;font-size:12px;overflow:auto;margin-top:14px}
+  .addr{background:rgba(91,83,255,.06);border:1px solid #ece8e1;border-radius:10px;padding:12px;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Your research wallet</h1>
+  <p class="sub">Sign in with a passkey — Circle creates a wallet only you can sign for.</p>
+  <button id="go">🔑 Create / sign in with passkey</button>
+  <div id="status" class="row"></div>
+  <div id="out"></div>
+</div>
+
+<script type="module">
+import { W3SSdk } from "https://esm.sh/@circle-fin/w3s-pw-web-sdk@1.1.11";
+
+const $ = (s)=>document.querySelector(s);
+const status = (msg, cls="") => $("#status").innerHTML = `<span class="${cls}">${msg}</span>`;
+
+// stable per-browser user id
+let userId = localStorage.getItem("qgent.userId");
+if (!userId) { userId = "qgent-" + Math.random().toString(36).slice(2,10); localStorage.setItem("qgent.userId", userId); }
+
+$("#go").onclick = async () => {
+  $("#go").disabled = true;
+  try {
+    status("Requesting challenge…");
+    const init = await (await fetch("/api/ucw/init", {
+      method:"POST", headers:{"content-type":"application/json"}, body: JSON.stringify({ userId })
+    })).json();
+    if (init.error) throw new Error(init.error);
+    if (!init.appId) throw new Error("W3S_APP_ID not set on server (.env)");
+
+    const sdk = new W3SSdk();
+    sdk.setAppSettings({ appId: init.appId });
+    sdk.setAuthentication({ userToken: init.userToken, encryptionKey: init.encryptionKey });
+
+    status("Complete the passkey prompt…");
+    sdk.execute(init.challengeId, async (err, result) => {
+      if (err) { status("Passkey failed: " + (err.message||err.code), "err"); $("#go").disabled=false; return; }
+      status("Passkey OK ✓ — fetching wallet…", "ok");
+      const wallets = await (await fetch("/api/ucw/wallets/" + userId)).json();
+      const w = (wallets[0]||{});
+      $("#out").innerHTML = `
+        <div class="addr"><div class="k">Your wallet (${w.blockchain||"—"})</div>
+          <div class="v">${w.address||"(pending)"}</div></div>
+        <div class="row k">Fund it: send testnet USDC to that address on ${w.blockchain||"the chain"}.</div>
+        <pre>${JSON.stringify(wallets,null,2)}</pre>`;
+      $("#go").disabled=false;
+    });
+  } catch (e) { status("Error: " + e.message, "err"); $("#go").disabled=false; }
+};
+
+status("user: " + userId);
+</script>
+</body>
+</html>

@@ -4,10 +4,28 @@ import path from "node:path";
 import { runFlow, PRICE, FEE } from "./runtime.js";
 import { circleConfigured, usdcBalance, WALLETS } from "./circle.js";
 import { saveSearch, listSearches, getSearch, clearSearches } from "./db.js";
+import { ucwConfigured, initUser, listWallets, transferChallenge, W3S_APP_ID } from "./ucw.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.resolve("public")));
+
+// --- User-Controlled Wallets (passkey) ---
+app.get("/api/ucw/config", (_req, res) => res.json({ configured: ucwConfigured(), appId: W3S_APP_ID }));
+app.post("/api/ucw/init", async (req, res) => {
+  try { res.json(await initUser(String(req.body.userId))); }
+  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+app.get("/api/ucw/wallets/:userId", async (req, res) => {
+  try { res.json(await listWallets(req.params.userId)); }
+  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+app.post("/api/ucw/pay-challenge", async (req, res) => {
+  try {
+    const { userId, walletId, tokenId, destinationAddress, amount } = req.body;
+    res.json(await transferChallenge(userId, walletId, tokenId, destinationAddress, Number(amount)));
+  } catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
 
 // Past searches (tiles) — persisted in SQLite.
 app.get("/api/searches", (_req, res) => res.json(listSearches()));
