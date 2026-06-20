@@ -250,6 +250,11 @@ const go = $("#go"), tl = $("#timeline");
 let LAST = null, deckData = null;
 window.__lastErr = "";
 window.addEventListener("error", e => { window.__lastErr = (e.message||"") + (e.filename ? " @ "+e.filename.split("/").pop() : ""); });
+// Demo shortcut: visit /?demo to appear signed in (skip passkey for recording).
+if (/[?&#]demo\b/.test(location.href)) {
+  localStorage.setItem("tilespree.userId","demo-user");
+  localStorage.setItem("tilespree.signedin","demo-user");
+}
 
 const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
 const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
