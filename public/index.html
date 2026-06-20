@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Research Agent — pay-per-query</title>
+<title>tile spree</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23f23a12'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-size='46' font-weight='900' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E" />
 <style>
   :root{
     --bg:#fbfaf8; --card:#ffffff; --ink:#15130f; --muted:#8b857c;
@@ -58,6 +59,8 @@
   .authcard .big{width:100%;padding:15px;font-size:16px}
   .authcard .skip{margin-top:12px;background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;font-weight:500}
   .authcard .st{margin-top:14px;font-size:13px;min-height:18px}.authcard .st .err{color:var(--err)}.authcard .st .ok{color:var(--ok)}
+  .qrbox{width:232px;height:232px;margin:4px auto 16px;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:#fff}
+  .qrbox img{width:216px;height:216px;border-radius:6px}
   .hero-search .row{gap:10px}
   #q{padding:16px 18px;font-size:17px;border-radius:13px}
   #q::placeholder{color:#bdb7ac;transition:opacity .3s}
@@ -231,9 +234,9 @@
 
 <div class="authwrap" id="authModal">
   <div class="authcard">
-    <h2>Continue with a passkey</h2>
-    <p>Create your TileSpree identity to read full research & run your own. First 3 runs free.</p>
-    <button class="big" id="authGo">🔑 Continue with passkey</button>
+    <h2>Scan to sign in</h2>
+    <p>Scan with your phone &amp; continue with a passkey. First 3 runs free.</p>
+    <div class="qrbox" id="qrBox"></div>
     <button class="skip" id="authClose">Maybe later</button>
     <div class="st" id="authSt"></div>
   </div>
@@ -358,36 +361,31 @@ let previewed = false, pendingAction = null;
 function gateTile(fn){ if(signedIn())return fn(); if(!previewed){previewed=true;return fn();} pendingAction=fn; openAuth(); }
 function gateRun(fn){ if(signedIn())return fn(); pendingAction=fn; openAuth(); }
 const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
-function openAuth(){ authSt(""); $("#authModal").classList.add("on"); }
-function closeAuth(){ $("#authModal").classList.remove("on"); }
+let pollTimer=null;
+function openAuth(){ authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on"); startQrLogin(); }
+function closeAuth(){ $("#authModal").classList.remove("on"); if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
 $("#authClose").onclick = closeAuth;
 $("#signInBtn").onclick = openAuth;
 $("#authModal").addEventListener("click",e=>{ if(e.target.id==="authModal")closeAuth(); });
-function finishAuth(){
+function finishAuth(uid){
+  if(uid){ userId=uid; localStorage.setItem(USERKEY,uid); }
   localStorage.setItem("tilespree.signedin", userId);
-  authSt("You're in ✓","ok"); $("#authGo").disabled=false;
-  updateAuthUI();
-  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 500);
+  authSt("You're in ✓","ok"); updateAuthUI();
+  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 700);
 }
-$("#authGo").onclick = async () => {
-  $("#authGo").disabled=true;
+// Desktop shows a QR to the phone; phone completes the passkey and claims the session.
+async function startQrLogin(){
   try{
-    if(!userId){ userId="ts-"+Math.random().toString(36).slice(2,10); localStorage.setItem(USERKEY,userId); }
-    authSt("Requesting challenge…");
-    const init = await (await fetch("/api/ucw/init",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId})})).json();
-    if(init.error) throw new Error(init.error);
-    if(!init.challengeId) return finishAuth();           // returning user
-    if(!window.W3SSdk) throw new Error("Circle SDK not loaded — " + (window.__lastErr || "open console (F12) for the real error"));
-    const sdk=new window.W3SSdk();
-    sdk.setAppSettings({appId:init.appId});
-    sdk.setAuthentication({userToken:init.userToken,encryptionKey:init.encryptionKey});
-    authSt("Complete the passkey / PIN prompt…");
-    sdk.execute(init.challengeId,(err)=>{
-      if(err){ authSt("Failed: "+(err.message||err.code||"unknown"),"err"); $("#authGo").disabled=false; return; }
-      finishAuth();
-    });
-  }catch(e){ authSt("Error: "+e.message,"err"); $("#authGo").disabled=false; }
-};
+    const s = await (await fetch("/api/session/new",{method:"POST"})).json();
+    const url = s.mobileUrl.startsWith("http") ? s.mobileUrl : (location.origin + s.mobileUrl);
+    $("#qrBox").innerHTML = `<img alt="Scan to sign in" src="https://api.qrserver.com/v1/create-qr-code/?size=216x216&margin=6&data=${encodeURIComponent(url)}">`;
+    authSt(s.hasBase ? "Scan with your phone to continue" : `Set PUBLIC_BASE_URL (tunnel) so a phone can reach this · <a href="${url}" target="_blank">open on this device</a>`);
+    pollTimer = setInterval(async()=>{
+      try{ const r = await (await fetch("/api/session/"+s.sid)).json();
+        if(r.status==="authed"){ clearInterval(pollTimer); pollTimer=null; finishAuth(r.userId); } }catch{}
+    }, 1600);
+  }catch(e){ authSt("Error: "+e.message,"err"); }
+}
 
 // ---- Run a query ----
 function doRun(q){

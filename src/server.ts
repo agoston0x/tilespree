@@ -10,8 +10,32 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.resolve("public")));
 
+// --- QR cross-device login: session pairing ---
+// Desktop opens a session + shows a QR to PUBLIC_BASE_URL/mobile.html?sid=...
+// Phone completes the Circle passkey/PIN, then claims the session; desktop polls.
+import { randomUUID } from "node:crypto";
+const sessions = new Map<string, { status: "pending" | "authed"; userId: string | null; ts: number }>();
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || "";
+
+app.post("/api/session/new", (_req, res) => {
+  const sid = randomUUID();
+  sessions.set(sid, { status: "pending", userId: null, ts: Date.now() });
+  const base = PUBLIC_BASE_URL.replace(/\/$/, "");
+  res.json({ sid, mobileUrl: base ? `${base}/mobile.html?sid=${sid}` : `/mobile.html?sid=${sid}`, hasBase: !!base });
+});
+app.get("/api/session/:sid", (req, res) => {
+  const s = sessions.get(req.params.sid);
+  res.json(s ? { status: s.status, userId: s.userId } : { status: "expired", userId: null });
+});
+app.post("/api/session/:sid/claim", (req, res) => {
+  const s = sessions.get(req.params.sid);
+  if (!s) return res.status(404).json({ error: "session expired" });
+  s.status = "authed"; s.userId = String(req.body.userId || "");
+  res.json({ ok: true });
+});
+
 // --- User-Controlled Wallets (passkey) ---
-app.get("/api/ucw/config", (_req, res) => res.json({ configured: ucwConfigured(), appId: W3S_APP_ID }));
+app.get("/api/ucw/config", (_req, res) => res.json({ configured: ucwConfigured(), appId: W3S_APP_ID, mobileBase: PUBLIC_BASE_URL }));
 app.post("/api/ucw/init", async (req, res) => {
   try { res.json(await initUser(String(req.body.userId))); }
   catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
