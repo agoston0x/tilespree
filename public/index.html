@@ -25,6 +25,28 @@
   .chip.spent b{color:var(--err)} .chip.left b{color:var(--ok)} .chip.locked b{color:#c98a14}
   .wrap{width:100%;max-width:580px;margin:0 auto;padding:26px 20px 80px}
   .sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+  /* hero search */
+  .hero-search{margin:8px 0 26px}
+  .hero-search .row{gap:10px}
+  #q{padding:16px 18px;font-size:17px;border-radius:13px}
+  #q::placeholder{color:#bdb7ac;transition:opacity .3s}
+  #q.phfade::placeholder{opacity:0}
+  #go{padding:16px 22px;font-size:16px}
+  /* past-search grid */
+  .hist-head{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 12px}
+  .hist-head h3{margin:0}
+  .hist-head .clear{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:0}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:8px}
+  .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:15px;overflow:hidden;
+    cursor:pointer;background:#fff;display:flex;flex-direction:column;justify-content:flex-end;
+    transition:transform .12s,box-shadow .12s}
+  .tile:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.10)}
+  .tile .thumb{position:absolute;inset:0;background-size:cover;background-position:center}
+  .tile .thumb.grad{background:linear-gradient(135deg,#5b53ff,#8b53ff 60%,#d2553f)}
+  .tile .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,6,.78),rgba(10,8,6,.05) 62%)}
+  .tile .q{position:relative;z-index:2;color:#fff;padding:10px 11px 2px;font-size:13px;font-weight:580;line-height:1.28;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .tile .meta{position:relative;z-index:2;color:rgba(255,255,255,.82);font-size:10.5px;padding:4px 11px 11px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
     padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
   .row{display:flex;gap:10px}
@@ -102,11 +124,16 @@
 <div class="wrap">
   <p class="sub">Pay-per-query research · Circle USDC escrow · Tavily research · Nebius TokenFactory inference. Real on-chain USDC.</p>
 
-  <div class="card">
+  <div class="hero-search">
     <div class="row">
-      <input id="q" placeholder="Enter a research topic…" value="How is Circle USDC used in AI agent payments?" />
+      <input id="q" placeholder="Research anything…" autocomplete="off" />
       <button id="go">Pay &amp; Run</button>
     </div>
+  </div>
+
+  <div class="hidden" id="history">
+    <div class="hist-head"><h3>Past research</h3><button class="clear" id="clearHist">Clear</button></div>
+    <div class="grid" id="grid"></div>
   </div>
 
   <div class="card hidden" id="flow"><ul class="timeline" id="timeline"></ul></div>
@@ -163,6 +190,60 @@ fetch("/api/balance").then(r => r.json()).then(b => {
   else { $("#spent").textContent = $("#locked").textContent = $("#remaining").textContent = "—"; }
 }).catch(()=>{});
 
+// Render a result (used by live runs AND by clicking a past-search tile).
+function showResult(d, scroll){
+  LAST = d;
+  $("#answer").innerHTML = citeHtml(d.result || "", d.sources || []);
+  const ul = $("#sources"); ul.innerHTML = "";
+  (d.sources||[]).forEach((s,i) => {
+    const li = document.createElement("li");
+    li.innerHTML = `<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><span class="u">${esc(s.url)}</span>`;
+    ul.appendChild(li);
+  });
+  const hasSrc = (d.sources||[]).length;
+  $("#srcHead").classList.toggle("hidden", !hasSrc);
+  $("#answerCard").classList.remove("hidden");
+  $("#presentPrompt").classList.toggle("hidden", !hasSrc);
+  $("#deckModal").classList.remove("on");
+  setTimeout(() => ($(scroll && hasSrc ? "#presentPrompt" : "#answerCard"))
+    .scrollIntoView({ behavior: "smooth", block: scroll ? "end" : "start" }), 120);
+}
+
+// ---- Past-search persistence (server / SQLite) ----
+async function renderHistory(){
+  let arr = [];
+  try { arr = await (await fetch("/api/searches")).json(); } catch {}
+  $("#history").classList.toggle("hidden", !arr.length);
+  $("#grid").innerHTML = (arr||[]).map((it) => {
+    const img = it.images && it.images[0] && it.images[0].url;
+    const thumb = img ? `<div class="thumb" style="background-image:url('${img}')"></div>` : `<div class="thumb grad"></div>`;
+    const spent = it.economics ? fmt(it.economics.spent) : "—";
+    return `<div class="tile" data-id="${it.id}">${thumb}<div class="veil"></div>
+      <div class="q">${esc(it.query)}</div><div class="meta">${ago(it.ts)} · ${spent}</div></div>`;
+  }).join("");
+}
+$("#grid").addEventListener("click", async (e) => {
+  const t = e.target.closest(".tile"); if (!t) return;
+  try { const it = await (await fetch("/api/searches/" + t.dataset.id)).json(); if (it && it.result) showResult(it, false); } catch {}
+});
+$("#clearHist").onclick = async () => { try { await fetch("/api/searches", { method: "DELETE" }); } catch {} renderHistory(); };
+const ago = (ts) => { const s=(Date.now()-ts)/1000;
+  return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago"; };
+
+// ---- Cycling greyed-out placeholder ----
+const PROMPTS = [
+  "What is the history of…", "The development role of…", "List every instance of…",
+  "Compare the approaches to…", "Trace the origins of…", "Why did … happen?",
+  "What are the latest breakthroughs in…", "Who are the key players in…",
+  "Explain how … actually works", "Map the landscape of…",
+];
+const qEl = $("#q"); let pi = 0; qEl.placeholder = PROMPTS[0];
+setInterval(() => {
+  if (qEl.value || document.activeElement === qEl) return; // never fight the user
+  qEl.classList.add("phfade");
+  setTimeout(() => { pi = (pi+1) % PROMPTS.length; qEl.placeholder = PROMPTS[pi]; qEl.classList.remove("phfade"); }, 300);
+}, 2800);
+
 go.onclick = () => {
   const q = $("#q").value.trim(); if (!q) return;
   go.disabled = true; tl.innerHTML = "";
@@ -186,25 +267,12 @@ go.onclick = () => {
   });
 
   es.addEventListener("done", (e) => {
-    const d = JSON.parse(e.data); LAST = d;
+    const d = JSON.parse(e.data);
     if (d.economics) {
       $("#spent").textContent = fmt(d.economics.spent);
       $("#remaining").textContent = fmt(d.economics.remaining);
     }
-    if (d.result) {
-      $("#answer").innerHTML = citeHtml(d.result, d.sources || []);
-      const ul = $("#sources"); ul.innerHTML = "";
-      (d.sources||[]).forEach((s,i) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${s.title}</a><span class="u">${s.url}</span>`;
-        ul.appendChild(li);
-      });
-      $("#srcHead").classList.toggle("hidden", !(d.sources||[]).length);
-      $("#answerCard").classList.remove("hidden");
-      const hasSrc = (d.sources||[]).length;
-      if (hasSrc) $("#presentPrompt").classList.remove("hidden");
-      setTimeout(() => scrollEnd($(hasSrc ? "#presentPrompt" : "#answerCard")), 120);
-    }
+    if (d.result) { showResult(d, true); renderHistory(); }
     es.close(); go.disabled = false;
   });
   es.addEventListener("fatal", (e) => {
@@ -295,6 +363,10 @@ document.addEventListener("keydown",(e)=>{
 });
 const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
+
+// Enter submits; render saved searches on load.
+qEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go.click(); });
+renderHistory();
 </script>
 </body>
 </html>

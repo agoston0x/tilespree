@@ -3,10 +3,19 @@ import express from "express";
 import path from "node:path";
 import { runFlow, PRICE, FEE } from "./runtime.js";
 import { circleConfigured, usdcBalance, WALLETS } from "./circle.js";
+import { saveSearch, listSearches, getSearch, clearSearches } from "./db.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.resolve("public")));
+
+// Past searches (tiles) — persisted in SQLite.
+app.get("/api/searches", (_req, res) => res.json(listSearches()));
+app.get("/api/searches/:id", (req, res) => {
+  const r = getSearch(req.params.id);
+  return r ? res.json(r) : res.status(404).json({ error: "not found" });
+});
+app.delete("/api/searches", (_req, res) => { clearSearches(); res.json({ ok: true }); });
 
 // Current wallet balance for the sticky bar on page load.
 app.get("/api/balance", async (_req, res) => {
@@ -29,7 +38,9 @@ app.get("/api/run", async (req, res) => {
 
   try {
     const r = await runFlow(query, (s) => send("step", s), (b) => send("balance", b));
-    send("done", { result: r.result, sources: r.sources, images: r.images, query: r.query, economics: r.economics });
+    let id = "";
+    if (r.result) { id = saveSearch({ query: r.query, result: r.result, sources: r.sources, images: r.images, economics: r.economics }).id; }
+    send("done", { id, result: r.result, sources: r.sources, images: r.images, query: r.query, economics: r.economics });
   } catch (e: any) {
     send("fatal", { error: e.message });
   }
