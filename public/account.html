@@ -25,11 +25,14 @@
   <div id="out"></div>
 </div>
 
-<script type="module">
-import { W3SSdk } from "https://esm.sh/@circle-fin/w3s-pw-web-sdk@1.1.11";
-
+<script src="/w3s.js"></script>
+<script>
 const $ = (s)=>document.querySelector(s);
 const status = (msg, cls="") => $("#status").innerHTML = `<span class="${cls}">${msg}</span>`;
+window.addEventListener("error", e => status("JS error: " + e.message, "err"));
+window.addEventListener("unhandledrejection", e => status("Promise error: " + (e.reason?.message||e.reason), "err"));
+
+async function loadSdk(){ return window.W3SSdk; }
 
 // stable per-browser user id
 let userId = localStorage.getItem("qgent.userId");
@@ -45,6 +48,12 @@ $("#go").onclick = async () => {
     if (init.error) throw new Error(init.error);
     if (!init.appId) throw new Error("W3S_APP_ID not set on server (.env)");
 
+    // Returning user (already has a wallet) — no challenge, just show it.
+    if (!init.challengeId) { status("Welcome back ✓", "ok"); return showWallets(); }
+
+    status("Loading Circle SDK…");
+    const W3SSdk = await loadSdk();
+    if (!W3SSdk) throw new Error("SDK failed to load (W3SSdk undefined)");
     const sdk = new W3SSdk();
     sdk.setAppSettings({ appId: init.appId });
     sdk.setAuthentication({ userToken: init.userToken, encryptionKey: init.encryptionKey });

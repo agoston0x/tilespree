@@ -27,8 +27,21 @@
   .wrap{width:100%;max-width:1040px;margin:0 auto;padding:26px 22px 90px}
   .sub{color:var(--muted);margin:0 0 22px;font-size:14px;text-align:center}
   .narrow{max-width:760px;margin-left:auto;margin-right:auto}
-  /* hero search */
+  /* hero */
+  .hero-title{font-size:54px;font-weight:820;letter-spacing:-.04em;text-align:center;margin:18px 0 6px;
+    background:linear-gradient(120deg,#5b53ff,#8b53ff 55%,#d2553f);-webkit-background-clip:text;background-clip:text;color:transparent}
+  @media(max-width:600px){.hero-title{font-size:40px}}
   .hero-search{max-width:680px;margin:14px auto 30px}
+  /* auth modal */
+  .authwrap{position:fixed;inset:0;z-index:110;background:rgba(15,19,15,.62);backdrop-filter:blur(5px);
+    display:none;align-items:center;justify-content:center;padding:24px}
+  .authwrap.on{display:flex}
+  .authcard{background:#fff;border-radius:20px;padding:30px;max-width:420px;width:100%;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.35)}
+  .authcard h2{font-size:22px;margin:0 0 6px;letter-spacing:-.02em}
+  .authcard p{color:var(--muted);font-size:14px;margin:0 0 20px}
+  .authcard .big{width:100%;padding:15px;font-size:16px}
+  .authcard .skip{margin-top:12px;background:none;border:0;color:var(--muted);font-size:13px;cursor:pointer;font-weight:500}
+  .authcard .st{margin-top:14px;font-size:13px;min-height:18px}.authcard .st .err{color:var(--err)}.authcard .st .ok{color:var(--ok)}
   .hero-search .row{gap:10px}
   #q{padding:16px 18px;font-size:17px;border-radius:13px}
   #q::placeholder{color:#bdb7ac;transition:opacity .3s}
@@ -124,7 +137,7 @@
 </head>
 <body>
 <div class="topbar">
-  <div class="brand">Research Agent <span class="tag">Arbitrum Sepolia</span></div>
+  <div class="brand">TileSpree <span class="tag">Arbitrum Sepolia</span></div>
   <div class="spacer"></div>
   <div class="chip spent"><span>Spent</span><b id="spent">—</b></div>
   <div class="chip locked"><span>Locked (escrow)</span><b id="locked">—</b></div>
@@ -134,15 +147,16 @@
 <div class="wrap">
   <!-- LANDER -->
   <div id="lander">
-    <p class="sub">Pay-per-query research · Circle USDC escrow · Tavily research · Nebius TokenFactory inference. Real on-chain USDC.</p>
+    <h1 class="hero-title">TileSpree</h1>
+    <p class="sub">Tap a tile to preview. Run your own research — pay-per-query with real USDC, gasless. First 3 free with a passkey.</p>
     <div class="hero-search">
       <div class="row">
         <input id="q" placeholder="Research anything…" autocomplete="off" />
-        <button id="go">Pay &amp; Run</button>
+        <button id="go">Run</button>
       </div>
     </div>
     <div class="hidden" id="history">
-      <div class="hist-head"><h3>Past research</h3></div>
+      <div class="hist-head"><h3>Explore research</h3></div>
       <div class="grid" id="grid"></div>
     </div>
   </div>
@@ -188,6 +202,18 @@
 
 <div id="backdrop"></div>
 <div class="lb" id="lb"><img id="lbImg" alt=""></div>
+
+<div class="authwrap" id="authModal">
+  <div class="authcard">
+    <h2>Continue with a passkey</h2>
+    <p>Create your TileSpree identity to read full research & run your own. First 3 runs free.</p>
+    <button class="big" id="authGo">🔑 Continue with passkey</button>
+    <button class="skip" id="authClose">Maybe later</button>
+    <div class="st" id="authSt"></div>
+  </div>
+</div>
+
+<script src="/w3s.js"></script>
 
 <script>
 const $ = (s) => document.querySelector(s);
@@ -264,10 +290,13 @@ async function renderHistory(){
       <div class="q">${esc(it.query)}</div><div class="meta">${ago(it.ts)} · ${spent}</div></div>`;
   }).join("");
 }
-$("#grid").addEventListener("click", async (e)=>{
-  const t=e.target.closest(".tile"); if(!t)return;
-  try { const it=await (await fetch("/api/searches/"+t.dataset.id)).json();
+async function openTile(id){
+  try { const it=await (await fetch("/api/searches/"+id)).json();
     if(it&&it.result) showResult(it,{clamp:true,autoDeck:true}); } catch {}
+}
+$("#grid").addEventListener("click",(e)=>{
+  const t=e.target.closest(".tile"); if(!t)return;
+  gateTile(()=>openTile(t.dataset.id));
 });
 
 // ---- Cycling placeholder ----
@@ -281,9 +310,45 @@ setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
   setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
 },2800);
 
+// ---- Auth gate (passkey) ----
+const USERKEY="tilespree.userId";
+let userId = localStorage.getItem(USERKEY);
+const signedIn = () => !!localStorage.getItem("tilespree.signedin");
+let previewed = false, pendingAction = null;
+function gateTile(fn){ if(signedIn())return fn(); if(!previewed){previewed=true;return fn();} pendingAction=fn; openAuth(); }
+function gateRun(fn){ if(signedIn())return fn(); pendingAction=fn; openAuth(); }
+const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
+function openAuth(){ authSt(""); $("#authModal").classList.add("on"); }
+function closeAuth(){ $("#authModal").classList.remove("on"); }
+$("#authClose").onclick = closeAuth;
+$("#authModal").addEventListener("click",e=>{ if(e.target.id==="authModal")closeAuth(); });
+function finishAuth(){
+  localStorage.setItem("tilespree.signedin", userId);
+  authSt("You're in ✓","ok"); $("#authGo").disabled=false;
+  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 500);
+}
+$("#authGo").onclick = async () => {
+  $("#authGo").disabled=true;
+  try{
+    if(!userId){ userId="ts-"+Math.random().toString(36).slice(2,10); localStorage.setItem(USERKEY,userId); }
+    authSt("Requesting challenge…");
+    const init = await (await fetch("/api/ucw/init",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId})})).json();
+    if(init.error) throw new Error(init.error);
+    if(!init.challengeId) return finishAuth();           // returning user
+    if(!window.W3SSdk) throw new Error("Circle SDK not loaded");
+    const sdk=new window.W3SSdk();
+    sdk.setAppSettings({appId:init.appId});
+    sdk.setAuthentication({userToken:init.userToken,encryptionKey:init.encryptionKey});
+    authSt("Complete the passkey / PIN prompt…");
+    sdk.execute(init.challengeId,(err)=>{
+      if(err){ authSt("Failed: "+(err.message||err.code||"unknown"),"err"); $("#authGo").disabled=false; return; }
+      finishAuth();
+    });
+  }catch(e){ authSt("Error: "+e.message,"err"); $("#authGo").disabled=false; }
+};
+
 // ---- Run a query ----
-go.onclick = () => {
-  const q=qEl.value.trim(); if(!q)return;
+function doRun(q){
   go.disabled=true; tl.innerHTML="";
   setView("result");
   $("#flow").classList.remove("hidden");
@@ -309,7 +374,8 @@ go.onclick = () => {
   });
   es.addEventListener("fatal",(e)=>{ $("#answer").textContent="Error: "+(JSON.parse(e.data).error||"unknown"); $("#answerCard").classList.remove("hidden"); es.close(); go.disabled=false; });
   es.onerror=()=>{ es.close(); go.disabled=false; };
-};
+}
+go.onclick = () => { const q=qEl.value.trim(); if(!q)return; gateRun(()=>doRun(q)); };
 
 // ---- Citations + slide helpers ----
 function citeHtml(text,sources){

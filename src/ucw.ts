@@ -23,20 +23,25 @@ async function userToken(userId: string): Promise<{ userToken: string; encryptio
   return { userToken: data.userToken, encryptionKey: data.encryptionKey };
 }
 
-// Create the user (idempotent) + issue a challenge to create their SCA wallet + passkey.
+// Sign in / sign up. Returns a challengeId only when the user still needs to
+// provision their PIN + wallet; returning users with a wallet get challengeId=null.
 export async function initUser(userId: string) {
   const c = client();
-  try { await c.createUser({ userId }); } catch (e: any) {
-    // 409 = already exists → fine.
-    if (!String(e?.response?.data?.code || e?.message).includes("155101")) {
-      if (e?.response?.status !== 409) throw e;
-    }
-  }
+  try { await c.createUser({ userId }); } catch { /* already exists → fine */ }
   const tok = await userToken(userId);
+
+  // Already provisioned? Return their wallets, no challenge needed.
+  let wallets: any[] = [];
+  try { const { data } = await c.listWallets({ userToken: tok.userToken }); wallets = data?.wallets || []; } catch { /* none yet */ }
+  if (wallets.length) {
+    return { appId: W3S_APP_ID, ...tok, challengeId: null, wallets };
+  }
+
+  // First time: create PIN + SCA wallets → challenge for the browser to execute.
   const { data } = await c.createUserPinWithWallets({
     userId, blockchains: UCW_CHAINS, accountType: "SCA",
   });
-  return { appId: W3S_APP_ID, ...tok, challengeId: data.challengeId };
+  return { appId: W3S_APP_ID, ...tok, challengeId: data.challengeId, wallets: [] };
 }
 
 // List the user's wallets (address per chain) after the challenge completes.
