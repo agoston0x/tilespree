@@ -13,6 +13,7 @@
   body{margin:0;background:var(--bg);color:var(--ink);
     font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
   a{color:var(--accent)}
+  .hidden{display:none!important}
   /* sticky bar */
   .topbar{position:sticky;top:0;z-index:50;background:rgba(251,250,248,.85);
     backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line);
@@ -23,30 +24,31 @@
   .chip{display:flex;flex-direction:column;align-items:flex-end;font-size:11px;color:var(--muted);line-height:1.25}
   .chip b{font-size:14px;color:var(--ink);font-weight:620}
   .chip.spent b{color:var(--err)} .chip.left b{color:var(--ok)} .chip.locked b{color:#c98a14}
-  .wrap{width:100%;max-width:580px;margin:0 auto;padding:26px 20px 80px}
-  .sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+  .wrap{width:100%;max-width:1040px;margin:0 auto;padding:26px 22px 90px}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:14px;text-align:center}
+  .narrow{max-width:760px;margin-left:auto;margin-right:auto}
   /* hero search */
-  .hero-search{margin:8px 0 26px}
+  .hero-search{max-width:680px;margin:14px auto 30px}
   .hero-search .row{gap:10px}
   #q{padding:16px 18px;font-size:17px;border-radius:13px}
   #q::placeholder{color:#bdb7ac;transition:opacity .3s}
   #q.phfade::placeholder{opacity:0}
   #go{padding:16px 22px;font-size:16px}
-  /* past-search grid */
-  .hist-head{display:flex;align-items:baseline;justify-content:space-between;margin:4px 0 12px}
-  .hist-head h3{margin:0}
-  .hist-head .clear{font-size:12px;color:var(--muted);cursor:pointer;background:none;border:0}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:8px}
-  .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:15px;overflow:hidden;
+  /* past-search grid — full width, max 4/row */
+  .hist-head{margin:6px 0 14px}.hist-head h3{margin:0}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}}
+  .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:16px;overflow:hidden;
     cursor:pointer;background:#fff;display:flex;flex-direction:column;justify-content:flex-end;
     transition:transform .12s,box-shadow .12s}
-  .tile:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.10)}
+  .tile:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12)}
   .tile .thumb{position:absolute;inset:0;background-size:cover;background-position:center}
   .tile .thumb.grad{background:linear-gradient(135deg,#5b53ff,#8b53ff 60%,#d2553f)}
-  .tile .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,6,.78),rgba(10,8,6,.05) 62%)}
-  .tile .q{position:relative;z-index:2;color:#fff;padding:10px 11px 2px;font-size:13px;font-weight:580;line-height:1.28;
+  .tile .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,6,.8),rgba(10,8,6,.05) 64%)}
+  .tile .q{position:relative;z-index:2;color:#fff;padding:12px 13px 2px;font-size:14px;font-weight:600;line-height:1.3;
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .tile .meta{position:relative;z-index:2;color:rgba(255,255,255,.82);font-size:10.5px;padding:4px 11px 11px}
+  .tile .meta{position:relative;z-index:2;color:rgba(255,255,255,.82);font-size:11px;padding:5px 13px 13px}
+  /* cards / inputs */
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
     padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
   .row{display:flex;gap:10px}
@@ -57,6 +59,8 @@
   button:disabled{opacity:.45;cursor:default}
   button.ghost{background:#fff;color:var(--accent);border:1px solid var(--line)}
   button:active:not(:disabled){transform:translateY(1px)}
+  .back{margin-bottom:14px}
+  /* timeline */
   .timeline{list-style:none;margin:0;padding:0}
   .step{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);opacity:.35;transition:opacity .35s}
   .step:first-child{border-top:0}.step.live{opacity:1}
@@ -66,30 +70,38 @@
   .step .label{font-weight:560}
   .step .detail{color:var(--muted);font-size:13px;margin-top:2px}
   .step .art{font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all}
+  /* findings */
   .answer{white-space:pre-wrap;font-size:15px;line-height:1.65}
   h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px}
   .srcs{list-style:none;padding:0;margin:0}
   .srcs li{padding:7px 0;border-top:1px solid var(--line);font-size:14px}
-  .srcs a{text-decoration:none;font-weight:540}
-  .srcs .u{display:block;color:var(--muted);font-size:12px;margin-top:1px}
-  .hidden{display:none}
-  .prompt{display:flex;align-items:center;gap:10px}
-  .prompt span{flex:1;font-weight:560}
-  /* presentation modal */
-  .modal{position:fixed;inset:0;z-index:90;background:rgba(15,19,15,.6);
-    backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:3vh 2vw}
-  .modal.on{display:flex}
-  .modalInner{position:relative;width:96vw;max-width:1040px;height:92vh;background:#fff;
-    border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
-  .close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.05);color:var(--ink);
-    border:0;border-radius:9px;width:34px;height:34px;padding:0;font-size:16px;cursor:pointer}
+  .srcs a{text-decoration:none;font-weight:540}.srcs .u{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+  .findings{position:relative}
+  .findings.clamped{max-height:260px;overflow:hidden}
+  .findings.clamped::after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,#fff)}
+  .showmore{margin-top:12px}
+  /* deck section */
+  #deckSection{margin-bottom:16px}
+  .deckph{height:440px;border:1.5px dashed #d8d2c8;border-radius:18px;display:grid;place-items:center;text-align:center;
+    background:linear-gradient(135deg,rgba(91,83,255,.05),rgba(210,85,63,.05))}
+  .deckph .cta b{display:block;font-size:16px;color:var(--ink);margin-bottom:4px;font-weight:640}
+  .deckph .cta span{display:block;color:var(--muted);font-size:13px;margin-bottom:16px}
+  .deckwrap{position:relative;height:440px;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    background:#fff;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(0,0,0,.03);transition:box-shadow .2s}
+  .deckwrap.maximized{position:fixed;inset:3vh 2vw;height:auto;z-index:95;box-shadow:0 24px 70px rgba(0,0,0,.4)}
+  #backdrop{position:fixed;inset:0;background:rgba(15,19,15,.6);backdrop-filter:blur(4px);z-index:94;display:none}
+  #backdrop.show{display:block}
+  .iconbtn{position:absolute;top:12px;z-index:6;background:rgba(255,255,255,.92);color:var(--ink);
+    border:1px solid var(--line);border-radius:9px;width:34px;height:34px;padding:0;font-size:15px;cursor:pointer}
+  .mx{right:12px}.dclose{right:12px;display:none}
+  .deckwrap.maximized .mx{display:none}.deckwrap.maximized .dclose{display:block}
   /* slideshow */
   .deck{position:relative;overflow:hidden;background:#fff;flex:1;display:flex;flex-direction:column}
-  .slides{display:flex;transition:transform .35s ease;flex:1}
-  .slide{min-width:100%;padding:40px 48px;overflow-y:auto}
-  .slide img.hero{width:100%;height:300px;object-fit:cover;border-radius:12px;background:#f0eee9;margin-bottom:18px;cursor:zoom-in}
-  .slide h2{font-size:27px;margin:0 0 12px;letter-spacing:-.02em;line-height:1.15}
+  .slides{display:flex;transition:transform .35s ease;flex:1;min-height:0}
+  .slide{min-width:100%;padding:34px 44px;overflow-y:auto}
+  .slide h2{font-size:25px;margin:0 0 12px;letter-spacing:-.02em;line-height:1.15}
   .slide p{color:#3b372f;font-size:14px;line-height:1.6;margin:0 0 12px}
+  .slide img.hero{width:100%;height:230px;object-fit:cover;border-radius:12px;background:#f0eee9;margin-bottom:18px;cursor:zoom-in}
   .kicker{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:640}
   .nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--line)}
   .nav .dots{display:flex;gap:5px}.nav .d{width:6px;height:6px;border-radius:50%;background:var(--line)}.nav .d.on{background:var(--accent)}
@@ -97,8 +109,6 @@
   .tree .branch{padding:5px 0 5px 16px;border-left:2px solid var(--line);margin-left:6px}
   .tree .branch a{text-decoration:none;font-weight:540}.tree .branch .u{color:var(--muted);font-size:12px}
   .imgrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.imgrow img{width:72px;height:54px;object-fit:cover;border-radius:7px;cursor:zoom-in}
-  /* slide typography */
-  .slide img.hero{cursor:zoom-in;height:210px}
   .slide .pts{list-style:none;padding:0;margin:6px 0 0}
   .slide .pts li{position:relative;padding:7px 0 7px 20px;font-size:14px;line-height:1.55;border-top:1px solid var(--line)}
   .slide .pts li:first-child{border-top:0}
@@ -108,7 +118,7 @@
   .slide .callout{background:rgba(91,83,255,.06);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13.5px;color:#3b372f;margin-top:12px}
   .slide a.src{display:inline-block;margin-top:12px;font-weight:560;text-decoration:none}
   /* lightbox */
-  .lb{position:fixed;inset:0;z-index:100;background:rgba(15,19,15,.86);display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out}
+  .lb{position:fixed;inset:0;z-index:120;background:rgba(15,19,15,.86);display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out}
   .lb.on{display:flex}.lb img{max-width:92vw;max-height:90vh;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
 </style>
 </head>
@@ -122,250 +132,261 @@
 </div>
 
 <div class="wrap">
-  <p class="sub">Pay-per-query research · Circle USDC escrow · Tavily research · Nebius TokenFactory inference. Real on-chain USDC.</p>
-
-  <div class="hero-search">
-    <div class="row">
-      <input id="q" placeholder="Research anything…" autocomplete="off" />
-      <button id="go">Pay &amp; Run</button>
+  <!-- LANDER -->
+  <div id="lander">
+    <p class="sub">Pay-per-query research · Circle USDC escrow · Tavily research · Nebius TokenFactory inference. Real on-chain USDC.</p>
+    <div class="hero-search">
+      <div class="row">
+        <input id="q" placeholder="Research anything…" autocomplete="off" />
+        <button id="go">Pay &amp; Run</button>
+      </div>
+    </div>
+    <div class="hidden" id="history">
+      <div class="hist-head"><h3>Past research</h3></div>
+      <div class="grid" id="grid"></div>
     </div>
   </div>
 
-  <div class="hidden" id="history">
-    <div class="hist-head"><h3>Past research</h3><button class="clear" id="clearHist">Clear</button></div>
-    <div class="grid" id="grid"></div>
-  </div>
+  <!-- RESULT -->
+  <div id="result" class="hidden">
+    <button class="ghost back" id="backBtn">‹ Back to research</button>
 
-  <div class="card hidden" id="flow"><ul class="timeline" id="timeline"></ul></div>
+    <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
 
-  <div class="card hidden" id="answerCard">
-    <div class="answer" id="answer"></div>
-    <h3 id="srcHead" class="hidden">Sources</h3>
-    <ul class="srcs" id="sources"></ul>
-  </div>
-
-  <div class="card hidden" id="presentPrompt">
-    <div class="prompt">
-      <span>Build a quick presentation from these findings?</span>
-      <button class="ghost" id="noPres">No</button>
-      <button id="yesPres">Yes</button>
+    <div class="card narrow hidden" id="answerCard">
+      <div class="findings" id="findings">
+        <div class="answer" id="answer"></div>
+        <h3 id="srcHead" class="hidden">Sources</h3>
+        <ul class="srcs" id="sources"></ul>
+      </div>
+      <button class="ghost showmore hidden" id="showMore">Show more</button>
     </div>
-  </div>
 
-</div>
-
-<div class="modal" id="deckModal">
-  <div class="modalInner">
-    <button class="close" id="closeDeck" title="Close (Esc)">✕</button>
-    <div class="deck">
-      <div class="slides" id="slides"></div>
-      <div class="nav">
-        <button class="ghost" id="prev">‹ Prev</button>
-        <div class="dots" id="dots"></div>
-        <button class="ghost" id="next">Next ›</button>
+    <div id="deckSection" class="hidden">
+      <div class="deckph" id="deckph">
+        <div class="cta">
+          <b>Presentation deck</b>
+          <span>Turn these findings into a slideshow with images &amp; source map.</span>
+          <button id="genDeck">✨ Generate deck</button>
+        </div>
+      </div>
+      <div class="deckwrap hidden" id="deckwrap">
+        <button class="iconbtn mx" id="mxBtn" title="Maximize">⛶</button>
+        <button class="iconbtn dclose" id="closeDeck" title="Close">✕</button>
+        <div class="deck">
+          <div class="slides" id="slides"></div>
+          <div class="nav">
+            <button class="ghost" id="prev">‹ Prev</button>
+            <div class="dots" id="dots"></div>
+            <button class="ghost" id="next">Next ›</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<div id="backdrop"></div>
 <div class="lb" id="lb"><img id="lbImg" alt=""></div>
 
 <script>
 const $ = (s) => document.querySelector(s);
 const go = $("#go"), tl = $("#timeline");
-let LAST = null; // last done payload
+let LAST = null, deckData = null;
 
 const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
 const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
-const scrollEnd = (el) => el.scrollIntoView({ behavior: "smooth", block: "end" });
 const setBal = (b) => {
   if (b.spent != null) $("#spent").textContent = fmt(b.spent);
   if (b.locked != null) $("#locked").textContent = fmt(b.locked);
   if (b.remaining != null) $("#remaining").textContent = fmt(b.remaining);
 };
+const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
+const ago = (ts)=>{const s=(Date.now()-ts)/1000;
+  return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago";};
 
-// Wallet balances on page load (before any query).
-fetch("/api/balance").then(r => r.json()).then(b => {
-  if (b.configured) setBal({ spent: 0, locked: 0, remaining: b.remaining });
-  else { $("#spent").textContent = $("#locked").textContent = $("#remaining").textContent = "—"; }
+// ---- Views ----
+function setView(v){
+  $("#lander").classList.toggle("hidden", v!=="lander");
+  $("#result").classList.toggle("hidden", v!=="result");
+  if (v==="lander") { restoreDeck(); renderHistory(); window.scrollTo({top:0,behavior:"smooth"}); }
+}
+$("#backBtn").onclick = () => setView("lander");
+
+// ---- Balance on load ----
+fetch("/api/balance").then(r=>r.json()).then(b=>{
+  if (b.configured) setBal({spent:0,locked:0,remaining:b.remaining});
+  else { $("#spent").textContent=$("#locked").textContent=$("#remaining").textContent="—"; }
 }).catch(()=>{});
 
-// Render a result (used by live runs AND by clicking a past-search tile).
-function showResult(d, scroll){
-  LAST = d;
+// ---- Render findings + deck section ----
+function showResult(d, opts){
+  opts = opts || {};
+  LAST = d; deckData = d;
   $("#answer").innerHTML = citeHtml(d.result || "", d.sources || []);
   const ul = $("#sources"); ul.innerHTML = "";
-  (d.sources||[]).forEach((s,i) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><span class="u">${esc(s.url)}</span>`;
+  (d.sources||[]).forEach((s,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><span class="u">${esc(s.url)}</span>`;
     ul.appendChild(li);
   });
-  const hasSrc = (d.sources||[]).length;
+  const hasSrc=(d.sources||[]).length;
   $("#srcHead").classList.toggle("hidden", !hasSrc);
+  $("#flow").classList.toggle("hidden", !opts.live); // timeline only for live runs
   $("#answerCard").classList.remove("hidden");
-  $("#presentPrompt").classList.toggle("hidden", !hasSrc);
-  $("#deckModal").classList.remove("on");
-  setTimeout(() => ($(scroll && hasSrc ? "#presentPrompt" : "#answerCard"))
-    .scrollIntoView({ behavior: "smooth", block: scroll ? "end" : "start" }), 120);
+  // clamp findings (default when opened from a tile)
+  const clamp = !!opts.clamp;
+  $("#findings").classList.toggle("clamped", clamp);
+  $("#showMore").classList.toggle("hidden", !clamp);
+  $("#showMore").textContent = "Show more";
+  // deck section: placeholder by default; auto-build+maximize when opening a tile
+  $("#deckSection").classList.toggle("hidden", !hasSrc);
+  resetDeckToPlaceholder();
+  if (opts.autoDeck && hasSrc) { buildDeck(d); maximizeDeck(); }
+  setView("result");
 }
+$("#showMore").onclick = () => {
+  const c = $("#findings").classList.toggle("clamped");
+  $("#showMore").textContent = c ? "Show more" : "Show less";
+};
 
-// ---- Past-search persistence (server / SQLite) ----
+// ---- Past-search tiles (server / SQLite) ----
 async function renderHistory(){
-  let arr = [];
+  let arr=[];
   try { arr = await (await fetch("/api/searches")).json(); } catch {}
-  $("#history").classList.toggle("hidden", !arr.length);
-  $("#grid").innerHTML = (arr||[]).map((it) => {
+  $("#history").classList.toggle("hidden", !(arr&&arr.length));
+  $("#grid").innerHTML = (arr||[]).map((it)=>{
     const img = it.images && it.images[0] && it.images[0].url;
-    const thumb = img ? `<div class="thumb" style="background-image:url('${img}')"></div>` : `<div class="thumb grad"></div>`;
-    const spent = it.economics ? fmt(it.economics.spent) : "—";
+    const thumb = img?`<div class="thumb" style="background-image:url('${img}')"></div>`:`<div class="thumb grad"></div>`;
+    const spent = it.economics?fmt(it.economics.spent):"—";
     return `<div class="tile" data-id="${it.id}">${thumb}<div class="veil"></div>
       <div class="q">${esc(it.query)}</div><div class="meta">${ago(it.ts)} · ${spent}</div></div>`;
   }).join("");
 }
-$("#grid").addEventListener("click", async (e) => {
-  const t = e.target.closest(".tile"); if (!t) return;
-  try { const it = await (await fetch("/api/searches/" + t.dataset.id)).json(); if (it && it.result) showResult(it, false); } catch {}
+$("#grid").addEventListener("click", async (e)=>{
+  const t=e.target.closest(".tile"); if(!t)return;
+  try { const it=await (await fetch("/api/searches/"+t.dataset.id)).json();
+    if(it&&it.result) showResult(it,{clamp:true,autoDeck:true}); } catch {}
 });
-$("#clearHist").onclick = async () => { try { await fetch("/api/searches", { method: "DELETE" }); } catch {} renderHistory(); };
-const ago = (ts) => { const s=(Date.now()-ts)/1000;
-  return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago"; };
 
-// ---- Cycling greyed-out placeholder ----
-const PROMPTS = [
-  "What is the history of…", "The development role of…", "List every instance of…",
-  "Compare the approaches to…", "Trace the origins of…", "Why did … happen?",
-  "What are the latest breakthroughs in…", "Who are the key players in…",
-  "Explain how … actually works", "Map the landscape of…",
-];
-const qEl = $("#q"); let pi = 0; qEl.placeholder = PROMPTS[0];
-setInterval(() => {
-  if (qEl.value || document.activeElement === qEl) return; // never fight the user
+// ---- Cycling placeholder ----
+const PROMPTS=["What is the history of…","The development role of…","List every instance of…",
+  "Compare the approaches to…","Trace the origins of…","Why did … happen?",
+  "What are the latest breakthroughs in…","Who are the key players in…",
+  "Explain how … actually works","Map the landscape of…"];
+const qEl=$("#q"); let pi=0; qEl.placeholder=PROMPTS[0];
+setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
   qEl.classList.add("phfade");
-  setTimeout(() => { pi = (pi+1) % PROMPTS.length; qEl.placeholder = PROMPTS[pi]; qEl.classList.remove("phfade"); }, 300);
-}, 2800);
+  setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
+},2800);
 
+// ---- Run a query ----
 go.onclick = () => {
-  const q = $("#q").value.trim(); if (!q) return;
-  go.disabled = true; tl.innerHTML = "";
-  for (const id of ["flow"]) $("#"+id).classList.remove("hidden");
-  for (const id of ["answerCard","presentPrompt"]) $("#"+id).classList.add("hidden");
-  $("#deckModal").classList.remove("on"); $("#lb").classList.remove("on");
+  const q=qEl.value.trim(); if(!q)return;
+  go.disabled=true; tl.innerHTML="";
+  setView("result");
+  $("#flow").classList.remove("hidden");
+  $("#answerCard").classList.add("hidden");
+  $("#deckSection").classList.add("hidden");
 
-  const es = new EventSource("/api/run?q=" + encodeURIComponent(q));
-
-  es.addEventListener("balance", (e) => setBal(JSON.parse(e.data)));
-
-  es.addEventListener("step", (e) => {
-    const s = JSON.parse(e.data);
-    const li = document.createElement("li");
-    li.className = "step live " + s.status;
-    const icon = s.status === "ok" ? "✓" : s.status === "error" ? "!" : "–";
-    const art = s.artifact ? Object.entries(s.artifact).map(([k,v]) =>
-      `<div class="art">${k}: ${linkify(v)}</div>`).join("") : "";
-    li.innerHTML = `<div class="dot">${icon}</div><div><div class="label">${s.label}</div>${s.detail?`<div class="detail">${s.detail}</div>`:""}${art}</div>`;
-    tl.appendChild(li); scrollEnd(li);
+  const es=new EventSource("/api/run?q="+encodeURIComponent(q));
+  es.addEventListener("balance",(e)=>setBal(JSON.parse(e.data)));
+  es.addEventListener("step",(e)=>{
+    const s=JSON.parse(e.data);
+    const li=document.createElement("li");
+    li.className="step live "+s.status;
+    const icon=s.status==="ok"?"✓":s.status==="error"?"!":"–";
+    const art=s.artifact?Object.entries(s.artifact).map(([k,v])=>`<div class="art">${k}: ${linkify(v)}</div>`).join(""):"";
+    li.innerHTML=`<div class="dot">${icon}</div><div><div class="label">${s.label}</div>${s.detail?`<div class="detail">${s.detail}</div>`:""}${art}</div>`;
+    tl.appendChild(li); li.scrollIntoView({behavior:"smooth",block:"end"});
   });
-
-  es.addEventListener("done", (e) => {
-    const d = JSON.parse(e.data);
-    if (d.economics) {
-      $("#spent").textContent = fmt(d.economics.spent);
-      $("#remaining").textContent = fmt(d.economics.remaining);
-    }
-    if (d.result) { showResult(d, true); renderHistory(); }
-    es.close(); go.disabled = false;
+  es.addEventListener("done",(e)=>{
+    const d=JSON.parse(e.data);
+    if(d.economics){ $("#spent").textContent=fmt(d.economics.spent); $("#remaining").textContent=fmt(d.economics.remaining); }
+    if(d.result){ showResult(d,{clamp:false,autoDeck:false,live:true}); setTimeout(()=>$("#deckSection").scrollIntoView({behavior:"smooth",block:"center"}),150); }
+    es.close(); go.disabled=false;
   });
-  es.addEventListener("fatal", (e) => {
-    $("#answer").textContent = "Error: " + (JSON.parse(e.data).error || "unknown");
-    $("#answerCard").classList.remove("hidden"); es.close(); go.disabled = false;
-  });
-  es.onerror = () => { es.close(); go.disabled = false; };
+  es.addEventListener("fatal",(e)=>{ $("#answer").textContent="Error: "+(JSON.parse(e.data).error||"unknown"); $("#answerCard").classList.remove("hidden"); es.close(); go.disabled=false; });
+  es.onerror=()=>{ es.close(); go.disabled=false; };
 };
 
-// ---- Citations: turn [n] into clickable source links ----
-function citeHtml(text, sources){
-  return esc(text).replace(/\[(\d+)\]/g, (m,n) => {
-    const s = sources[+n-1];
-    return s ? `<a href="${s.url}" target="_blank" rel="noopener">[${n}]</a>` : m;
-  });
+// ---- Citations + slide helpers ----
+function citeHtml(text,sources){
+  return esc(text).replace(/\[(\d+)\]/g,(m,n)=>{const s=sources[+n-1];
+    return s?`<a href="${s.url}" target="_blank" rel="noopener">[${n}]</a>`:m;});
 }
-// Split synthesized answer into bullet chunks for slide typography.
 function toPoints(text){
-  return String(text).split(/\n+/).map(l=>l.replace(/^\s*([*\-•]|\d+[.)])\s*/,"").trim())
-    .filter(l=>l.length>2);
+  return String(text).split(/\n+/).map(l=>l.replace(/^\s*([*\-•]|\d+[.)])\s*/,"").trim()).filter(l=>l.length>2);
 }
 
-// ---- Presentation modal ----
-$("#noPres").onclick = () => $("#presentPrompt").classList.add("hidden");
-$("#yesPres").onclick = () => { $("#presentPrompt").classList.add("hidden"); buildDeck(LAST); };
-$("#closeDeck").onclick = closeDeck;
-$("#deckModal").addEventListener("click", (e)=>{ if(e.target.id==="deckModal") closeDeck(); });
-function closeDeck(){ $("#deckModal").classList.remove("on"); }
+// ---- Deck (placeholder ↔ inline ↔ maximized) ----
+function resetDeckToPlaceholder(){
+  $("#deckph").classList.remove("hidden");
+  $("#deckwrap").classList.add("hidden");
+  restoreDeck();
+}
+$("#genDeck").onclick = () => { if(deckData){ buildDeck(deckData); } };
 
-let idx = 0, count = 0;
+let idx=0, count=0;
 function buildDeck(d){
-  const sources = d.sources||[], images = (d.images||[]).map(i=>i.url);
-  const pts = toPoints(d.result||"");
-  const slides = [];
-
-  // title / takeaways slide
+  const sources=d.sources||[], images=(d.images||[]).map(i=>i.url);
+  const pts=toPoints(d.result||"");
+  const slides=[];
   slides.push(`<div class="slide"><div class="kicker">Research Findings</div>
-    <h2>${esc(d.query)}</h2>
-    <p class="lead">Key takeaways</p>
+    <h2>${esc(d.query)}</h2><p class="lead">Key takeaways</p>
     <ul class="pts ${pts.length>3?"twocol":""}">${pts.map(p=>`<li>${citeHtml(p,sources)}</li>`).join("")}</ul>
     ${images.length?`<div class="imgrow">${images.slice(0,8).map(u=>`<img class="zoom" src="${u}" onerror="this.style.display='none'">`).join("")}</div>`:""}</div>`);
-
-  // one slide per source — hero visual + excerpt + callout
   sources.forEach((s,i)=>{
-    const img = images[i] || images[i % Math.max(1,images.length)];
+    const img=images[i]||images[i%Math.max(1,images.length)];
     slides.push(`<div class="slide">
       ${img?`<img class="hero zoom" src="${img}" onerror="this.style.display='none'">`:""}
       <div class="kicker">Source ${i+1} of ${sources.length} · ${host(s.url)}</div>
-      <h2>${esc(s.title)}</h2>
-      <p>${esc((s.content||"").slice(0,420))}…</p>
+      <h2>${esc(s.title)}</h2><p>${esc((s.content||"").slice(0,420))}…</p>
       <div class="callout">Why it matters: cited as [${i+1}] in the synthesized answer.</div>
       <a class="src" href="${s.url}" target="_blank" rel="noopener">Open source ↗</a></div>`);
   });
-
-  // search-tree slide
-  slides.push(`<div class="slide"><div class="kicker">Tavily Search Tree</div>
-    <h2>Research map</h2>
+  slides.push(`<div class="slide"><div class="kicker">Tavily Search Tree</div><h2>Research map</h2>
     <div class="tree"><div class="root">🔎 ${esc(d.query)}</div>
       ${sources.map((s,i)=>`<div class="branch"><a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><div class="u">${host(s.url)}</div></div>`).join("")}
     </div></div>`);
 
-  $("#slides").innerHTML = slides.join("");
-  $("#dots").innerHTML = slides.map(()=>`<div class="d"></div>`).join("");
-  count = slides.length; idx = 0; render();
-  $("#deckModal").classList.add("on");
+  $("#slides").innerHTML=slides.join("");
+  $("#dots").innerHTML=slides.map(()=>`<div class="d"></div>`).join("");
+  count=slides.length; idx=0; render();
+  $("#deckph").classList.add("hidden");
+  $("#deckwrap").classList.remove("hidden");
 }
 function render(){
-  $("#slides").style.transform = `translateX(-${idx*100}%)`;
-  $("#slides").scrollTop = 0;
+  $("#slides").style.transform=`translateX(-${idx*100}%)`;
+  $("#slides").scrollTop=0;
   [...$("#dots").children].forEach((d,i)=>d.classList.toggle("on",i===idx));
-  $("#prev").disabled = idx===0; $("#next").disabled = idx===count-1;
+  $("#prev").disabled=idx===0; $("#next").disabled=idx===count-1;
 }
-$("#prev").onclick = ()=>{ if(idx>0){idx--;render();} };
-$("#next").onclick = ()=>{ if(idx<count-1){idx++;render();} };
+$("#prev").onclick=()=>{ if(idx>0){idx--;render();} };
+$("#next").onclick=()=>{ if(idx<count-1){idx++;render();} };
 
-// ---- Image lightbox (expand any .zoom image) ----
-document.addEventListener("click",(e)=>{
-  if(e.target.matches("img.zoom")){ $("#lbImg").src=e.target.src; $("#lb").classList.add("on"); }
-});
-$("#lb").onclick = ()=> $("#lb").classList.remove("on");
+function maximizeDeck(){ $("#deckwrap").classList.add("maximized"); $("#backdrop").classList.add("show"); }
+function restoreDeck(){ $("#deckwrap").classList.remove("maximized"); $("#backdrop").classList.remove("show"); }
+$("#mxBtn").onclick=maximizeDeck;
+$("#closeDeck").onclick=restoreDeck;
+$("#backdrop").onclick=restoreDeck;
+
+// ---- Lightbox ----
+document.addEventListener("click",(e)=>{ if(e.target.matches("img.zoom")){ $("#lbImg").src=e.target.src; $("#lb").classList.add("on"); } });
+$("#lb").onclick=()=>$("#lb").classList.remove("on");
 
 document.addEventListener("keydown",(e)=>{
   if($("#lb").classList.contains("on")){ if(e.key==="Escape")$("#lb").classList.remove("on"); return; }
-  if(!$("#deckModal").classList.contains("on"))return;
+  if($("#deckwrap").classList.contains("maximized")){
+    if(e.key==="Escape"){restoreDeck();return;}
+  }
+  if($("#deckwrap").classList.contains("hidden"))return;
   if(e.key==="ArrowLeft")$("#prev").click();
   else if(e.key==="ArrowRight")$("#next").click();
-  else if(e.key==="Escape")closeDeck();
 });
-const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
 
-// Enter submits; render saved searches on load.
-qEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go.click(); });
+qEl.addEventListener("keydown",(e)=>{ if(e.key==="Enter")go.click(); });
 renderHistory();
 </script>
 </body>
