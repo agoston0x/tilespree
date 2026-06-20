@@ -1,0 +1,40 @@
+// Backend: serves the UI + streams the agent flow as SSE.
+import express from "express";
+import path from "node:path";
+import { runFlow, PRICE, FEE } from "./runtime.js";
+import { circleConfigured, usdcBalance, WALLETS } from "./circle.js";
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.resolve("public")));
+
+// Current wallet balance for the sticky bar on page load.
+app.get("/api/balance", async (_req, res) => {
+  try {
+    const remaining = circleConfigured() ? await usdcBalance(WALLETS.user) : 0;
+    res.json({ configured: circleConfigured(), remaining, locked: 0, spent: 0, price: PRICE, fee: FEE });
+  } catch (e: any) {
+    res.json({ configured: false, error: e.message, remaining: 0, locked: 0, spent: 0, price: PRICE, fee: FEE });
+  }
+});
+
+app.get("/api/run", async (req, res) => {
+  const query = String(req.query.q || "").trim();
+  if (!query) return res.status(400).json({ error: "missing q" });
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  const send = (event: string, data: any) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
+  try {
+    const r = await runFlow(query, (s) => send("step", s), (b) => send("balance", b));
+    send("done", { result: r.result, sources: r.sources, images: r.images, query: r.query, economics: r.economics });
+  } catch (e: any) {
+    send("fatal", { error: e.message });
+  }
+  res.end();
+});
+
+const PORT = Number(process.env.PORT || 5173);
+app.listen(PORT, () => console.log(`▸ http://localhost:${PORT}`));

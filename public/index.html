@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Research Agent — pay-per-query</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --card:#ffffff; --ink:#15130f; --muted:#8b857c;
+    --line:#ece8e1; --accent:#5b53ff; --ok:#1f9d63; --skip:#b9b3a8; --err:#d2553f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+  a{color:var(--accent)}
+  /* sticky bar */
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(251,250,248,.85);
+    backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px;padding:11px 20px}
+  .brand{font-weight:680;letter-spacing:-.02em;font-size:15px}
+  .brand .tag{font-size:11px;color:var(--accent);background:rgba(91,83,255,.08);border-radius:6px;padding:2px 7px;margin-left:6px}
+  .spacer{flex:1}
+  .chip{display:flex;flex-direction:column;align-items:flex-end;font-size:11px;color:var(--muted);line-height:1.25}
+  .chip b{font-size:14px;color:var(--ink);font-weight:620}
+  .chip.spent b{color:var(--err)} .chip.left b{color:var(--ok)} .chip.locked b{color:#c98a14}
+  .wrap{width:100%;max-width:580px;margin:0 auto;padding:26px 20px 80px}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .row{display:flex;gap:10px}
+  input{flex:1;border:1px solid var(--line);border-radius:11px;padding:13px 14px;font-size:15px;outline:none}
+  input:focus{border-color:var(--accent)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:11px;padding:13px 18px;
+    font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .05s}
+  button:disabled{opacity:.45;cursor:default}
+  button.ghost{background:#fff;color:var(--accent);border:1px solid var(--line)}
+  button:active:not(:disabled){transform:translateY(1px)}
+  .timeline{list-style:none;margin:0;padding:0}
+  .step{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);opacity:.35;transition:opacity .35s}
+  .step:first-child{border-top:0}.step.live{opacity:1}
+  .dot{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:#f0eee9;color:var(--skip);margin-top:1px}
+  .step.ok .dot{background:rgba(31,157,99,.13);color:var(--ok)}
+  .step.error .dot{background:rgba(210,85,63,.13);color:var(--err)}
+  .step .label{font-weight:560}
+  .step .detail{color:var(--muted);font-size:13px;margin-top:2px}
+  .step .art{font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all}
+  .answer{white-space:pre-wrap;font-size:15px;line-height:1.65}
+  h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px}
+  .srcs{list-style:none;padding:0;margin:0}
+  .srcs li{padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+  .srcs a{text-decoration:none;font-weight:540}
+  .srcs .u{display:block;color:var(--muted);font-size:12px;margin-top:1px}
+  .hidden{display:none}
+  .prompt{display:flex;align-items:center;gap:10px}
+  .prompt span{flex:1;font-weight:560}
+  /* presentation modal */
+  .modal{position:fixed;inset:0;z-index:90;background:rgba(15,19,15,.6);
+    backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:3vh 2vw}
+  .modal.on{display:flex}
+  .modalInner{position:relative;width:96vw;max-width:1040px;height:92vh;background:#fff;
+    border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden}
+  .close{position:absolute;top:12px;right:12px;z-index:5;background:rgba(0,0,0,.05);color:var(--ink);
+    border:0;border-radius:9px;width:34px;height:34px;padding:0;font-size:16px;cursor:pointer}
+  /* slideshow */
+  .deck{position:relative;overflow:hidden;background:#fff;flex:1;display:flex;flex-direction:column}
+  .slides{display:flex;transition:transform .35s ease;flex:1}
+  .slide{min-width:100%;padding:40px 48px;overflow-y:auto}
+  .slide img.hero{width:100%;height:300px;object-fit:cover;border-radius:12px;background:#f0eee9;margin-bottom:18px;cursor:zoom-in}
+  .slide h2{font-size:27px;margin:0 0 12px;letter-spacing:-.02em;line-height:1.15}
+  .slide p{color:#3b372f;font-size:14px;line-height:1.6;margin:0 0 12px}
+  .kicker{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);font-weight:640}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--line)}
+  .nav .dots{display:flex;gap:5px}.nav .d{width:6px;height:6px;border-radius:50%;background:var(--line)}.nav .d.on{background:var(--accent)}
+  .tree{font-size:14px}.tree .root{font-weight:640;margin-bottom:6px}
+  .tree .branch{padding:5px 0 5px 16px;border-left:2px solid var(--line);margin-left:6px}
+  .tree .branch a{text-decoration:none;font-weight:540}.tree .branch .u{color:var(--muted);font-size:12px}
+  .imgrow{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.imgrow img{width:72px;height:54px;object-fit:cover;border-radius:7px;cursor:zoom-in}
+  /* slide typography */
+  .slide img.hero{cursor:zoom-in;height:210px}
+  .slide .pts{list-style:none;padding:0;margin:6px 0 0}
+  .slide .pts li{position:relative;padding:7px 0 7px 20px;font-size:14px;line-height:1.55;border-top:1px solid var(--line)}
+  .slide .pts li:first-child{border-top:0}
+  .slide .pts li::before{content:"";position:absolute;left:2px;top:14px;width:7px;height:7px;border-radius:2px;background:var(--accent)}
+  .slide .twocol{column-count:2;column-gap:18px}
+  .slide .lead{font-size:15px;color:#3b372f;font-weight:540;margin:0 0 10px}
+  .slide .callout{background:rgba(91,83,255,.06);border-left:3px solid var(--accent);border-radius:8px;padding:10px 12px;font-size:13.5px;color:#3b372f;margin-top:12px}
+  .slide a.src{display:inline-block;margin-top:12px;font-weight:560;text-decoration:none}
+  /* lightbox */
+  .lb{position:fixed;inset:0;z-index:100;background:rgba(15,19,15,.86);display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out}
+  .lb.on{display:flex}.lb img{max-width:92vw;max-height:90vh;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="brand">Research Agent <span class="tag">Arbitrum Sepolia</span></div>
+  <div class="spacer"></div>
+  <div class="chip spent"><span>Spent</span><b id="spent">—</b></div>
+  <div class="chip locked"><span>Locked (escrow)</span><b id="locked">—</b></div>
+  <div class="chip left"><span>Remaining</span><b id="remaining">—</b></div>
+</div>
+
+<div class="wrap">
+  <p class="sub">Pay-per-query research · Circle USDC escrow · Tavily research · Nebius TokenFactory inference. Real on-chain USDC.</p>
+
+  <div class="card">
+    <div class="row">
+      <input id="q" placeholder="Enter a research topic…" value="How is Circle USDC used in AI agent payments?" />
+      <button id="go">Pay &amp; Run</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="flow"><ul class="timeline" id="timeline"></ul></div>
+
+  <div class="card hidden" id="answerCard">
+    <div class="answer" id="answer"></div>
+    <h3 id="srcHead" class="hidden">Sources</h3>
+    <ul class="srcs" id="sources"></ul>
+  </div>
+
+  <div class="card hidden" id="presentPrompt">
+    <div class="prompt">
+      <span>Build a quick presentation from these findings?</span>
+      <button class="ghost" id="noPres">No</button>
+      <button id="yesPres">Yes</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal" id="deckModal">
+  <div class="modalInner">
+    <button class="close" id="closeDeck" title="Close (Esc)">✕</button>
+    <div class="deck">
+      <div class="slides" id="slides"></div>
+      <div class="nav">
+        <button class="ghost" id="prev">‹ Prev</button>
+        <div class="dots" id="dots"></div>
+        <button class="ghost" id="next">Next ›</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lb" id="lb"><img id="lbImg" alt=""></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const go = $("#go"), tl = $("#timeline");
+let LAST = null; // last done payload
+
+const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
+const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
+const scrollEnd = (el) => el.scrollIntoView({ behavior: "smooth", block: "end" });
+const setBal = (b) => {
+  if (b.spent != null) $("#spent").textContent = fmt(b.spent);
+  if (b.locked != null) $("#locked").textContent = fmt(b.locked);
+  if (b.remaining != null) $("#remaining").textContent = fmt(b.remaining);
+};
+
+// Wallet balances on page load (before any query).
+fetch("/api/balance").then(r => r.json()).then(b => {
+  if (b.configured) setBal({ spent: 0, locked: 0, remaining: b.remaining });
+  else { $("#spent").textContent = $("#locked").textContent = $("#remaining").textContent = "—"; }
+}).catch(()=>{});
+
+go.onclick = () => {
+  const q = $("#q").value.trim(); if (!q) return;
+  go.disabled = true; tl.innerHTML = "";
+  for (const id of ["flow"]) $("#"+id).classList.remove("hidden");
+  for (const id of ["answerCard","presentPrompt"]) $("#"+id).classList.add("hidden");
+  $("#deckModal").classList.remove("on"); $("#lb").classList.remove("on");
+
+  const es = new EventSource("/api/run?q=" + encodeURIComponent(q));
+
+  es.addEventListener("balance", (e) => setBal(JSON.parse(e.data)));
+
+  es.addEventListener("step", (e) => {
+    const s = JSON.parse(e.data);
+    const li = document.createElement("li");
+    li.className = "step live " + s.status;
+    const icon = s.status === "ok" ? "✓" : s.status === "error" ? "!" : "–";
+    const art = s.artifact ? Object.entries(s.artifact).map(([k,v]) =>
+      `<div class="art">${k}: ${linkify(v)}</div>`).join("") : "";
+    li.innerHTML = `<div class="dot">${icon}</div><div><div class="label">${s.label}</div>${s.detail?`<div class="detail">${s.detail}</div>`:""}${art}</div>`;
+    tl.appendChild(li); scrollEnd(li);
+  });
+
+  es.addEventListener("done", (e) => {
+    const d = JSON.parse(e.data); LAST = d;
+    if (d.economics) {
+      $("#spent").textContent = fmt(d.economics.spent);
+      $("#remaining").textContent = fmt(d.economics.remaining);
+    }
+    if (d.result) {
+      $("#answer").innerHTML = citeHtml(d.result, d.sources || []);
+      const ul = $("#sources"); ul.innerHTML = "";
+      (d.sources||[]).forEach((s,i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${s.title}</a><span class="u">${s.url}</span>`;
+        ul.appendChild(li);
+      });
+      $("#srcHead").classList.toggle("hidden", !(d.sources||[]).length);
+      $("#answerCard").classList.remove("hidden");
+      const hasSrc = (d.sources||[]).length;
+      if (hasSrc) $("#presentPrompt").classList.remove("hidden");
+      setTimeout(() => scrollEnd($(hasSrc ? "#presentPrompt" : "#answerCard")), 120);
+    }
+    es.close(); go.disabled = false;
+  });
+  es.addEventListener("fatal", (e) => {
+    $("#answer").textContent = "Error: " + (JSON.parse(e.data).error || "unknown");
+    $("#answerCard").classList.remove("hidden"); es.close(); go.disabled = false;
+  });
+  es.onerror = () => { es.close(); go.disabled = false; };
+};
+
+// ---- Citations: turn [n] into clickable source links ----
+function citeHtml(text, sources){
+  return esc(text).replace(/\[(\d+)\]/g, (m,n) => {
+    const s = sources[+n-1];
+    return s ? `<a href="${s.url}" target="_blank" rel="noopener">[${n}]</a>` : m;
+  });
+}
+// Split synthesized answer into bullet chunks for slide typography.
+function toPoints(text){
+  return String(text).split(/\n+/).map(l=>l.replace(/^\s*([*\-•]|\d+[.)])\s*/,"").trim())
+    .filter(l=>l.length>2);
+}
+
+// ---- Presentation modal ----
+$("#noPres").onclick = () => $("#presentPrompt").classList.add("hidden");
+$("#yesPres").onclick = () => { $("#presentPrompt").classList.add("hidden"); buildDeck(LAST); };
+$("#closeDeck").onclick = closeDeck;
+$("#deckModal").addEventListener("click", (e)=>{ if(e.target.id==="deckModal") closeDeck(); });
+function closeDeck(){ $("#deckModal").classList.remove("on"); }
+
+let idx = 0, count = 0;
+function buildDeck(d){
+  const sources = d.sources||[], images = (d.images||[]).map(i=>i.url);
+  const pts = toPoints(d.result||"");
+  const slides = [];
+
+  // title / takeaways slide
+  slides.push(`<div class="slide"><div class="kicker">Research Findings</div>
+    <h2>${esc(d.query)}</h2>
+    <p class="lead">Key takeaways</p>
+    <ul class="pts ${pts.length>3?"twocol":""}">${pts.map(p=>`<li>${citeHtml(p,sources)}</li>`).join("")}</ul>
+    ${images.length?`<div class="imgrow">${images.slice(0,8).map(u=>`<img class="zoom" src="${u}" onerror="this.style.display='none'">`).join("")}</div>`:""}</div>`);
+
+  // one slide per source — hero visual + excerpt + callout
+  sources.forEach((s,i)=>{
+    const img = images[i] || images[i % Math.max(1,images.length)];
+    slides.push(`<div class="slide">
+      ${img?`<img class="hero zoom" src="${img}" onerror="this.style.display='none'">`:""}
+      <div class="kicker">Source ${i+1} of ${sources.length} · ${host(s.url)}</div>
+      <h2>${esc(s.title)}</h2>
+      <p>${esc((s.content||"").slice(0,420))}…</p>
+      <div class="callout">Why it matters: cited as [${i+1}] in the synthesized answer.</div>
+      <a class="src" href="${s.url}" target="_blank" rel="noopener">Open source ↗</a></div>`);
+  });
+
+  // search-tree slide
+  slides.push(`<div class="slide"><div class="kicker">Tavily Search Tree</div>
+    <h2>Research map</h2>
+    <div class="tree"><div class="root">🔎 ${esc(d.query)}</div>
+      ${sources.map((s,i)=>`<div class="branch"><a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><div class="u">${host(s.url)}</div></div>`).join("")}
+    </div></div>`);
+
+  $("#slides").innerHTML = slides.join("");
+  $("#dots").innerHTML = slides.map(()=>`<div class="d"></div>`).join("");
+  count = slides.length; idx = 0; render();
+  $("#deckModal").classList.add("on");
+}
+function render(){
+  $("#slides").style.transform = `translateX(-${idx*100}%)`;
+  $("#slides").scrollTop = 0;
+  [...$("#dots").children].forEach((d,i)=>d.classList.toggle("on",i===idx));
+  $("#prev").disabled = idx===0; $("#next").disabled = idx===count-1;
+}
+$("#prev").onclick = ()=>{ if(idx>0){idx--;render();} };
+$("#next").onclick = ()=>{ if(idx<count-1){idx++;render();} };
+
+// ---- Image lightbox (expand any .zoom image) ----
+document.addEventListener("click",(e)=>{
+  if(e.target.matches("img.zoom")){ $("#lbImg").src=e.target.src; $("#lb").classList.add("on"); }
+});
+$("#lb").onclick = ()=> $("#lb").classList.remove("on");
+
+document.addEventListener("keydown",(e)=>{
+  if($("#lb").classList.contains("on")){ if(e.key==="Escape")$("#lb").classList.remove("on"); return; }
+  if(!$("#deckModal").classList.contains("on"))return;
+  if(e.key==="ArrowLeft")$("#prev").click();
+  else if(e.key==="ArrowRight")$("#next").click();
+  else if(e.key==="Escape")closeDeck();
+});
+const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
+</script>
+</body>
+</html>
