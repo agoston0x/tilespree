@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#fbfaf8; --card:#ffffff; --ink:#15130f; --muted:#8b857c;
-    --line:#ece8e1; --accent:#5b53ff; --ok:#1f9d63; --skip:#b9b3a8; --err:#d2553f;
+    --line:#ece8e1; --accent:#f23a12; --ok:#1f9d63; --skip:#b9b3a8; --err:#d2553f;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -18,8 +18,18 @@
   .topbar{position:sticky;top:0;z-index:50;background:rgba(251,250,248,.85);
     backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line);
     display:flex;align-items:center;gap:14px;padding:11px 20px}
-  .brand{font-weight:680;letter-spacing:-.02em;font-size:15px}
-  .brand .tag{font-size:11px;color:var(--accent);background:rgba(91,83,255,.08);border-radius:6px;padding:2px 7px;margin-left:6px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .tag{font-size:11px;color:var(--accent);background:rgba(242,58,18,.08);border-radius:6px;padding:2px 7px}
+  /* enamel-sign logo (recreated from tilespree.png) */
+  .logo{position:relative;background:#f23a12;border-radius:5px;padding:6px 11px 8px;transform:rotate(-1.5deg);
+    box-shadow:0 4px 14px rgba(242,58,18,.32);line-height:.84}
+  .logo span{display:block;color:#fff;font-weight:800;font-family:"Arial Black","Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em;text-shadow:0 1px 0 rgba(0,0,0,.08)}
+  .logo .l1{font-size:14px;transform:rotate(-3deg) translateX(1px)}
+  .logo .l2{font-size:16px;transform:rotate(1.5deg)}
+  .logo .l3{font-size:14px;transform:rotate(-1.5deg);margin-left:7px}
+  .logo i{position:absolute;width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+  .logo .b1{top:5px;right:6px}.logo .b2{bottom:6px;left:6px}
+  .logo .b3{top:7px;left:8px;background:#bfe34a;box-shadow:0 0 0 1.5px #fff}
   .spacer{flex:1}
   .chip{display:flex;flex-direction:column;align-items:flex-end;font-size:11px;color:var(--muted);line-height:1.25}
   .chip b{font-size:14px;color:var(--ink);font-weight:620}
@@ -29,7 +39,7 @@
   .narrow{max-width:760px;margin-left:auto;margin-right:auto}
   /* hero */
   .hero-title{font-size:54px;font-weight:820;letter-spacing:-.04em;text-align:center;margin:18px 0 6px;
-    background:linear-gradient(120deg,#5b53ff,#8b53ff 55%,#d2553f);-webkit-background-clip:text;background-clip:text;color:transparent}
+    background:linear-gradient(120deg,#f23a12,#ff7a3c 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
   @media(max-width:600px){.hero-title{font-size:40px}}
   .hero-search{max-width:680px;margin:14px auto 30px}
   /* auth modal */
@@ -56,7 +66,7 @@
     transition:transform .12s,box-shadow .12s}
   .tile:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12)}
   .tile .thumb{position:absolute;inset:0;background-size:cover;background-position:center}
-  .tile .thumb.grad{background:linear-gradient(135deg,#5b53ff,#8b53ff 60%,#d2553f)}
+  .tile .thumb.grad{background:linear-gradient(135deg,#f23a12,#ff8a3d 60%,#ffb05a)}
   .tile .veil{position:absolute;inset:0;background:linear-gradient(to top,rgba(10,8,6,.8),rgba(10,8,6,.05) 64%)}
   .tile .q{position:relative;z-index:2;color:#fff;padding:12px 13px 2px;font-size:14px;font-weight:600;line-height:1.3;
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
@@ -137,7 +147,10 @@
 </head>
 <body>
 <div class="topbar">
-  <div class="brand">TileSpree <span class="tag">Arbitrum Sepolia</span></div>
+  <div class="brand">
+    <div class="logo" title="tile spree search"><span class="l1">tile</span><span class="l2">spree</span><span class="l3">search</span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+    <span class="tag">Arbitrum Sepolia</span>
+  </div>
   <div class="spacer"></div>
   <div class="chip spent"><span>Spent</span><b id="spent">—</b></div>
   <div class="chip locked"><span>Locked (escrow)</span><b id="locked">—</b></div>
