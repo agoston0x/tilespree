@@ -3,10 +3,65 @@ import express from "express";
 import path from "node:path";
 import { runFlow, PRICE, FEE } from "./runtime.js";
 import { circleConfigured, usdcBalance, WALLETS } from "./circle.js";
+import { saveSearch, listSearches, getSearch, clearSearches } from "./db.js";
+import { ucwConfigured, initUser, listWallets, transferChallenge, userUsdc, W3S_APP_ID } from "./ucw.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.resolve("public")));
+
+// --- QR cross-device login: session pairing ---
+// Desktop opens a session + shows a QR to PUBLIC_BASE_URL/mobile.html?sid=...
+// Phone completes the Circle passkey/PIN, then claims the session; desktop polls.
+import { randomUUID } from "node:crypto";
+const sessions = new Map<string, { status: "pending" | "authed"; userId: string | null; ts: number }>();
+const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || "";
+
+app.post("/api/session/new", (_req, res) => {
+  const sid = randomUUID();
+  sessions.set(sid, { status: "pending", userId: null, ts: Date.now() });
+  const base = PUBLIC_BASE_URL.replace(/\/$/, "");
+  res.json({ sid, mobileUrl: base ? `${base}/mobile.html?sid=${sid}` : `/mobile.html?sid=${sid}`, hasBase: !!base });
+});
+app.get("/api/session/:sid", (req, res) => {
+  const s = sessions.get(req.params.sid);
+  res.json(s ? { status: s.status, userId: s.userId } : { status: "expired", userId: null });
+});
+app.post("/api/session/:sid/claim", (req, res) => {
+  const s = sessions.get(req.params.sid);
+  if (!s) return res.status(404).json({ error: "session expired" });
+  s.status = "authed"; s.userId = String(req.body.userId || "");
+  res.json({ ok: true });
+});
+
+// --- User-Controlled Wallets (passkey) ---
+app.get("/api/ucw/config", (_req, res) => res.json({ configured: ucwConfigured(), appId: W3S_APP_ID, mobileBase: PUBLIC_BASE_URL }));
+app.post("/api/ucw/init", async (req, res) => {
+  try { res.json(await initUser(String(req.body.userId))); }
+  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+app.get("/api/ucw/wallets/:userId", async (req, res) => {
+  try { res.json(await listWallets(req.params.userId)); }
+  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+app.get("/api/ucw/balance/:userId", async (req, res) => {
+  try { res.json(await userUsdc(req.params.userId)); }
+  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+app.post("/api/ucw/pay-challenge", async (req, res) => {
+  try {
+    const { userId, walletId, tokenId, destinationAddress, amount } = req.body;
+    res.json(await transferChallenge(userId, walletId, tokenId, destinationAddress, Number(amount)));
+  } catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+});
+
+// Past searches (tiles) — persisted in SQLite.
+app.get("/api/searches", (_req, res) => res.json(listSearches()));
+app.get("/api/searches/:id", (req, res) => {
+  const r = getSearch(req.params.id);
+  return r ? res.json(r) : res.status(404).json({ error: "not found" });
+});
+app.delete("/api/searches", (_req, res) => { clearSearches(); res.json({ ok: true }); });
 
 // Current wallet balance for the sticky bar on page load.
 app.get("/api/balance", async (_req, res) => {
@@ -29,12 +84,17 @@ app.get("/api/run", async (req, res) => {
 
   try {
     const r = await runFlow(query, (s) => send("step", s), (b) => send("balance", b));
-    send("done", { result: r.result, sources: r.sources, images: r.images, query: r.query, economics: r.economics });
+    let id = "";
+    if (r.result) { id = saveSearch({ query: r.query, result: r.result, sources: r.sources, images: r.images, economics: r.economics }).id; }
+    send("done", { id, result: r.result, sources: r.sources, images: r.images, query: r.query, economics: r.economics });
   } catch (e: any) {
     send("fatal", { error: e.message });
   }
   res.end();
 });
+
+// Demo video page (drop the file at public/demo.mp4)
+app.get("/video", (_req, res) => res.sendFile(path.resolve("public/video.html")));
 
 const PORT = Number(process.env.PORT || 5173);
 app.listen(PORT, () => console.log(`▸ http://localhost:${PORT}`));

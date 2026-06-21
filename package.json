@@ -15,20 +15,30 @@
   "type": "module",
   "dependencies": {
     "@circle-fin/developer-controlled-wallets": "^10.6.0",
+    "@circle-fin/user-controlled-wallets": "^10.6.0",
+    "@circle-fin/w3s-pw-web-sdk": "^1.1.11",
     "@coral-xyz/anchor": "^0.32.1",
     "@oobe-protocol-labs/synapse-sap-sdk": "^0.20.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",
     "@tavily/core": "^0.7.6",
+    "better-sqlite3": "^12.11.1",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "openai": "^6.44.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/node": "^26.0.0",
+    "buffer": "^6.0.3",
+    "esbuild": "^0.28.1",
+    "esbuild-plugin-polyfill-node": "^0.3.0",
+    "process": "^0.11.10",
+    "stream-browserify": "^3.0.0",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "util": "^0.12.5"
   }
 }
