@@ -1,81 +1,125 @@
 // Backend: serves the UI + streams the agent flow as SSE.
 import express from "express";
 import path from "node:path";
-import { runFlow, PRICE, FEE } from "./runtime.js";
-import { circleConfigured, usdcBalance, WALLETS } from "./circle.js";
-import { saveSearch, listSearches, getSearch, clearSearches } from "./db.js";
-import { ucwConfigured, initUser, listWallets, transferChallenge, userUsdc, W3S_APP_ID } from "./ucw.js";
+import { randomUUID } from "node:crypto";
+import { runFlow, PRICE, FEE_PUBLIC, FEE_PRIVATE } from "./runtime.js";
+import {
+  chainConfigured, usdcBalance, allowanceOf, mintUsdc, operatorAddress,
+} from "./chain.js";
+import { verifyLogin } from "./wallet.js";
+import {
+  saveSearch, listSearches, getSearch, clearSearches,
+  toggleLike, likedIds, getAccount, bumpFreeUsed,
+} from "./db.js";
+import {
+  ZG_CHAIN_ID, ZG_RPC_URL, ZG_EXPLORER, USDC_ADDRESS, AGENT_ADDRESS,
+} from "./config.js";
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.resolve("public")));
 
+const FREE_LIMIT = Number(process.env.FREE_LIMIT || "3");
+const FAUCET_USDC = Number(process.env.FAUCET_USDC || "10");
+const FAUCET_GAS = process.env.FAUCET_GAS || "0.02"; // 0G sent for the user's approve gas
+
 // --- QR cross-device login: session pairing ---
 // Desktop opens a session + shows a QR to PUBLIC_BASE_URL/mobile.html?sid=...
-// Phone completes the Circle passkey/PIN, then claims the session; desktop polls.
-import { randomUUID } from "node:crypto";
-const sessions = new Map<string, { status: "pending" | "authed"; userId: string | null; ts: number }>();
+// Phone derives a passkey wallet, signs a proof, then claims the session; desktop polls.
+const sessions = new Map<string, { status: "pending" | "authed"; address: string | null; ts: number }>();
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || "";
 
 app.post("/api/session/new", (_req, res) => {
   const sid = randomUUID();
-  sessions.set(sid, { status: "pending", userId: null, ts: Date.now() });
+  sessions.set(sid, { status: "pending", address: null, ts: Date.now() });
   const base = PUBLIC_BASE_URL.replace(/\/$/, "");
   res.json({ sid, mobileUrl: base ? `${base}/mobile.html?sid=${sid}` : `/mobile.html?sid=${sid}`, hasBase: !!base });
 });
 app.get("/api/session/:sid", (req, res) => {
   const s = sessions.get(req.params.sid);
-  res.json(s ? { status: s.status, userId: s.userId } : { status: "expired", userId: null });
+  res.json(s ? { status: s.status, address: s.address } : { status: "expired", address: null });
 });
 app.post("/api/session/:sid/claim", (req, res) => {
   const s = sessions.get(req.params.sid);
   if (!s) return res.status(404).json({ error: "session expired" });
-  s.status = "authed"; s.userId = String(req.body.userId || "");
-  res.json({ ok: true });
+  const { address, sig, message } = req.body || {};
+  const ok = verifyLogin(req.params.sid, String(address || ""), String(sig || ""), message);
+  if (!ok) return res.status(400).json({ error: "invalid signature" });
+  s.status = "authed"; s.address = ok;
+  res.json({ ok: true, address: ok });
 });
 
-// --- User-Controlled Wallets (passkey) ---
-app.get("/api/ucw/config", (_req, res) => res.json({ configured: ucwConfigured(), appId: W3S_APP_ID, mobileBase: PUBLIC_BASE_URL }));
-app.post("/api/ucw/init", async (req, res) => {
-  try { res.json(await initUser(String(req.body.userId))); }
-  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+// --- chain config (public) — phone uses this to build the approve tx; desktop to render ---
+app.get("/api/chain/config", (_req, res) => {
+  res.json({
+    configured: chainConfigured(),
+    chainId: ZG_CHAIN_ID, rpcUrl: ZG_RPC_URL, explorer: ZG_EXPLORER,
+    usdc: USDC_ADDRESS, operator: chainConfigured() ? operatorAddress() : "",
+    agent: AGENT_ADDRESS, price: PRICE, feePublic: FEE_PUBLIC, feePrivate: FEE_PRIVATE,
+    freeLimit: FREE_LIMIT,
+  });
 });
-app.get("/api/ucw/wallets/:userId", async (req, res) => {
-  try { res.json(await listWallets(req.params.userId)); }
-  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
-});
-app.get("/api/ucw/balance/:userId", async (req, res) => {
-  try { res.json(await userUsdc(req.params.userId)); }
-  catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
-});
-app.post("/api/ucw/pay-challenge", async (req, res) => {
+
+// --- account state: free searches left, on-chain USDC balance + allowance ---
+app.get("/api/account/:address", async (req, res) => {
+  const address = String(req.params.address);
   try {
-    const { userId, walletId, tokenId, destinationAddress, amount } = req.body;
-    res.json(await transferChallenge(userId, walletId, tokenId, destinationAddress, Number(amount)));
-  } catch (e: any) { res.status(500).json({ error: e.response?.data?.message || e.message }); }
+    const acct = getAccount(address);
+    const freeLeft = Math.max(0, FREE_LIMIT - acct.freeUsed);
+    let usdc = 0, allowance = 0;
+    if (chainConfigured()) {
+      try { usdc = await usdcBalance(address); } catch {}
+      try { allowance = await allowanceOf(address); } catch {}
+    }
+    res.json({ address, freeUsed: acct.freeUsed, freeLeft, usdc, allowance, likes: likedIds(address) });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// Past searches (tiles) — persisted in SQLite.
-app.get("/api/searches", (_req, res) => res.json(listSearches()));
+// --- faucet: mint test USDC (+ a little 0G for gas) to the user's address ---
+app.post("/api/faucet", async (req, res) => {
+  if (!chainConfigured()) return res.status(400).json({ error: "chain not configured" });
+  const address = String(req.body?.address || "");
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return res.status(400).json({ error: "bad address" });
+  try {
+    const mint = await mintUsdc(address, FAUCET_USDC);
+    // Send a little 0G so the user can pay gas for their one-time approve.
+    let gasTx = "";
+    try {
+      const { operator, provider } = await import("./chain.js");
+      const bal = await provider().getBalance(address);
+      if (bal === 0n) {
+        const { ethers } = await import("ethers");
+        const tx = await operator().sendTransaction({ to: address, value: ethers.parseEther(FAUCET_GAS) });
+        await tx.wait(1); gasTx = tx.hash;
+      }
+    } catch (e) { /* gas top-up best-effort */ }
+    res.json({ ok: true, minted: FAUCET_USDC, mintTx: mint.explorer, gasTx, usdc: await usdcBalance(address) });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+// --- tiles (public searches) ---
+app.get("/api/searches", (req, res) => {
+  const sort = req.query.sort === "liked" ? "liked" : "recent";
+  res.json(listSearches(sort));
+});
 app.get("/api/searches/:id", (req, res) => {
   const r = getSearch(req.params.id);
   return r ? res.json(r) : res.status(404).json({ error: "not found" });
 });
 app.delete("/api/searches", (_req, res) => { clearSearches(); res.json({ ok: true }); });
-
-// Current wallet balance for the sticky bar on page load.
-app.get("/api/balance", async (_req, res) => {
-  try {
-    const remaining = circleConfigured() ? await usdcBalance(WALLETS.user) : 0;
-    res.json({ configured: circleConfigured(), remaining, locked: 0, spent: 0, price: PRICE, fee: FEE });
-  } catch (e: any) {
-    res.json({ configured: false, error: e.message, remaining: 0, locked: 0, spent: 0, price: PRICE, fee: FEE });
-  }
+app.post("/api/searches/:id/like", (req, res) => {
+  const address = String(req.body?.address || "");
+  if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return res.status(401).json({ error: "sign in to like" });
+  if (!getSearch(req.params.id)) return res.status(404).json({ error: "not found" });
+  res.json(toggleLike(address, req.params.id));
 });
 
+// --- run a query (SSE) ---
 app.get("/api/run", async (req, res) => {
   const query = String(req.query.q || "").trim();
   if (!query) return res.status(400).json({ error: "missing q" });
+  const address = String(req.query.address || "");
+  const reqMode = req.query.mode === "private" ? "private" : "public";
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -83,10 +127,39 @@ app.get("/api/run", async (req, res) => {
   const send = (event: string, data: any) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
   try {
-    const r = await runFlow(query, (s) => send("step", s), (b) => send("balance", b));
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) { send("fatal", { error: "sign in required" }); return res.end(); }
+
+    // Free tier: first FREE_LIMIT runs are app-paid (public inference); after that, paid.
+    const acct = getAccount(address);
+    const freeLeft = Math.max(0, FREE_LIMIT - acct.freeUsed);
+    const paid = freeLeft <= 0;
+    const mode: "public" | "private" = paid ? reqMode : "public";
+
+    if (paid && chainConfigured()) {
+      // Pre-flight: enough balance + allowance to cover the escrow deposit?
+      const [bal, allow] = await Promise.all([usdcBalance(address), allowanceOf(address)]);
+      if (bal < PRICE) { send("fatal", { error: `insufficient USDC (have ${bal}, need ${PRICE}) — use the faucet` }); return res.end(); }
+      if (allow < PRICE) { send("fatal", { error: "approve the app to spend your USDC first", needApprove: true }); return res.end(); }
+    }
+
+    const r = await runFlow(query, { userAddress: address, paid, mode },
+      (s) => send("step", s), (b) => send("balance", b));
+
+    if (!paid) bumpFreeUsed(address);
+
+    // Public results become tiles; private results stay with the user only.
     let id = "";
-    if (r.result) { id = saveSearch({ query: r.query, result: r.result, sources: r.sources, images: r.images, economics: r.economics }).id; }
-    send("done", { id, result: r.result, sources: r.sources, images: r.images, query: r.query, economics: r.economics });
+    if (r.result && mode === "public") {
+      id = saveSearch({
+        query: r.query, result: r.result, sources: r.sources, images: r.images,
+        economics: r.economics, visibility: "public", owner: address.toLowerCase(),
+      }).id;
+    }
+    send("done", {
+      id, result: r.result, sources: r.sources, images: r.images, query: r.query,
+      mode: r.mode, verified: r.verified, economics: r.economics,
+      freeLeft: Math.max(0, FREE_LIMIT - getAccount(address).freeUsed),
+    });
   } catch (e: any) {
     send("fatal", { error: e.message });
   }

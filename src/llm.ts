@@ -38,8 +38,14 @@ async function nebiusAnswer(query: string, context?: string): Promise<Answer> {
   };
 }
 
-export async function answer(query: string, context?: string): Promise<Answer> {
-  if (INFERENCE_PROVIDER === "0g" && zgConfigured()) {
+export async function answer(
+  query: string,
+  context?: string,
+  opts: { provider?: "0g" | "nebius" } = {},
+): Promise<Answer> {
+  // Explicit request wins; otherwise fall back to the env default.
+  const want = opts.provider || (INFERENCE_PROVIDER === "0g" ? "0g" : "nebius");
+  if (want === "0g" && zgConfigured()) {
     try {
       return await zgAnswer(query, context);
     } catch (e: any) {

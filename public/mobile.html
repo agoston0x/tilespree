@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>tile spree · sign in</title>
+<title>TileSpree · sign in</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23f23a12'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-size='46' font-weight='900' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E" />
 <style>
   body{margin:0;background:#fbfaf8;color:#15130f;font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;
@@ -12,41 +12,42 @@
   button{background:#f23a12;color:#fff;border:0;border-radius:12px;padding:16px;font-size:16px;font-weight:700;width:100%;cursor:pointer}
   button:disabled{opacity:.5}
   .st{margin-top:16px;font-size:14px;min-height:20px}.err{color:#d2553f}.ok{color:#1f9d63}
+  .addr{margin-top:14px;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#8b857c;word-break:break-all}
+  .mode{margin-top:10px;font-size:12px;color:#8b857c}
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>Sign in to tile spree</h1>
-  <p class="sub">Continue with a passkey to create your wallet and unlock the research on your desktop.</p>
+  <h1>Sign in to TileSpree</h1>
+  <p class="sub">Continue with your device passkey. We derive a self-custody wallet on this phone — your key never leaves it.</p>
   <button id="go">🔑 Continue with passkey</button>
   <div class="st" id="st"></div>
+  <div class="addr" id="addr"></div>
+  <div class="mode" id="mode"></div>
 </div>
-<script src="/w3s.js"></script>
+<script src="/ethers.js"></script>
+<script src="/passkey-wallet.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const st=(m,c="")=>$("#st").innerHTML=`<span class="${c}">${m}</span>`;
 const sid=new URLSearchParams(location.search).get("sid");
-let userId=localStorage.getItem("tilespree.userId");
-if(!userId){ userId="ts-"+Math.random().toString(36).slice(2,10); localStorage.setItem("tilespree.userId",userId); }
 if(!sid) st("Missing session — rescan the QR on your desktop.","err");
+if(!window.isSecureContext) st("Passkeys need HTTPS — open this page over https.","err");
 
 $("#go").onclick=async()=>{
   if(!sid)return; $("#go").disabled=true;
   try{
-    st("Requesting challenge…");
-    const init=await(await fetch("/api/ucw/init",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId})})).json();
-    if(init.error)throw new Error(init.error);
-    const claim=async()=>{ await fetch(`/api/session/${sid}/claim`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({userId})}); st("Done ✓ — return to your desktop.","ok"); };
-    if(!init.challengeId)return claim();                 // returning user
-    if(!window.W3SSdk)throw new Error("SDK not loaded: "+(window.__e||"see console"));
-    const sdk=new window.W3SSdk();
-    sdk.setAppSettings({appId:init.appId});
-    sdk.setAuthentication({userToken:init.userToken,encryptionKey:init.encryptionKey});
     st("Complete the passkey prompt…");
-    sdk.execute(init.challengeId,(err)=>{ if(err){st("Failed: "+(err.message||err.code),"err");$("#go").disabled=false;return;} claim(); });
-  }catch(e){ st("Error: "+e.message,"err"); $("#go").disabled=false; }
+    const { address, sig, message, mode } = await window.PasskeyWallet.connect(sid);
+    $("#addr").textContent = address;
+    $("#mode").textContent = mode==="passkey-prf" ? "🔒 key derived from your passkey (PRF)" : "🔑 device key (passkey PRF unavailable)";
+    st("Linking to your desktop…");
+    const r = await (await fetch(`/api/session/${sid}/claim`,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({ address, sig, message })})).json();
+    if(r.error) throw new Error(r.error);
+    st("Done ✓ — return to your desktop.","ok");
+  }catch(e){ st("Failed: "+(e.message||e),"err"); $("#go").disabled=false; }
 };
-window.addEventListener("error",e=>{window.__e=e.message;});
 </script>
 </body>
 </html>
