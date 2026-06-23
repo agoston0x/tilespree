@@ -15,3 +15,10 @@ export const ZG_PROVIDER_ADDRESS = process.env.ZG_PROVIDER_ADDRESS || ""; // pin
 export const ZG_LEDGER_FUND = Number(process.env.ZG_LEDGER_FUND || "0.1"); // 0G to fund a fresh ledger
 export const INFERENCE_PROVIDER =
   (process.env.INFERENCE_PROVIDER || (ZG_PRIVATE_KEY ? "0g" : "nebius")).toLowerCase();
+
+// On-chain payments — single chain (0G testnet), self-custody user wallets + mock USDC.
+// Operator = backend wallet that runs escrow on the user's behalf (needs 0G for gas).
+export const ZG_CHAIN_ID = Number(process.env.ZG_CHAIN_ID || "16602"); // 0G testnet Galileo
+export const OPERATOR_PRIVATE_KEY = process.env.OPERATOR_PRIVATE_KEY || ZG_PRIVATE_KEY;
+export const USDC_ADDRESS = process.env.USDC_ADDRESS || ""; // deployed MockUSDC (scripts/deploy-usdc.ts)
+export const AGENT_ADDRESS = process.env.AGENT_ADDRESS || ""; // fee recipient; defaults to operator addr
