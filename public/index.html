@@ -48,7 +48,8 @@
   .hero-title{font-size:54px;font-weight:820;letter-spacing:-.04em;text-align:center;margin:18px 0 6px;
     background:linear-gradient(120deg,#f23a12,#ff7a3c 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
   @media(max-width:600px){.hero-title{font-size:40px}}
-  .hero-search{max-width:680px;margin:14px auto 30px}
+  .hero-search{max-width:680px;margin:14px auto 14px}
+  .stackbar{text-align:center;color:var(--muted);font-size:12px;margin:0 auto 30px}.stackbar b{color:var(--accent);font-weight:700}
   /* auth modal */
   .authwrap{position:fixed;inset:0;z-index:110;background:rgba(15,19,15,.62);backdrop-filter:blur(5px);
     display:none;align-items:center;justify-content:center;padding:24px}
@@ -179,6 +180,7 @@
 <div class="topbar">
   <div class="brand">
     <div class="logo" title="tile spree"><span class="l1"><b>t</b><b>i</b><b>l</b><b>e</b></span><span class="l2"><b>s</b><b>p</b><b>r</b><b>e</b><b>e</b></span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
+    <span class="tag">0G Cup</span>
   </div>
   <div class="spacer"></div>
   <div id="guestBar" class="topgroup">
@@ -195,12 +197,16 @@
 <div class="wrap">
   <!-- LANDER -->
   <div id="lander">
+    <h1 class="hero-title">Research, paid by the query.</h1>
+    <p class="sub narrow">Browse the wall of past research, or run your own — escrowed in USDC on 0G, answered by AI.
+      Go <b>public</b> (cheap, shared) or <b>private</b> on <b>0G Compute</b>: your reasoning runs in a TEE and the response is cryptographically verifiable.</p>
     <div class="hero-search">
       <div class="row">
         <input id="q" placeholder="Research anything…" autocomplete="off" />
         <button id="go">Run</button>
       </div>
     </div>
+    <div class="stackbar">On-chain USDC escrow · Tavily research · <b>0G Compute</b> private TEE · passkey wallet</div>
     <div class="hidden" id="history">
       <div class="hist-head">
         <h3>Explore research</h3>
