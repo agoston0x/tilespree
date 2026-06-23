@@ -21,6 +21,7 @@
   <h1>Sign in to TileSpree</h1>
   <p class="sub">Continue with your device passkey. We derive a self-custody wallet on this phone — your key never leaves it.</p>
   <button id="go">🔑 Continue with passkey</button>
+  <button id="fund" style="display:none;margin-top:12px;background:#fff;color:#f23a12;border:1px solid #ece8e1">💵 Fund & authorize spending</button>
   <div class="st" id="st"></div>
   <div class="addr" id="addr"></div>
   <div class="mode" id="mode"></div>
@@ -45,8 +46,26 @@ $("#go").onclick=async()=>{
     const r = await (await fetch(`/api/session/${sid}/claim`,{method:"POST",headers:{"content-type":"application/json"},
       body:JSON.stringify({ address, sig, message })})).json();
     if(r.error) throw new Error(r.error);
-    st("Done ✓ — return to your desktop.","ok");
+    st("Signed in ✓ — you have free searches on your desktop.","ok");
+    // Offer funding/authorization for paid searches (only if the chain is configured).
+    const cfg = await (await fetch("/api/chain/config")).json();
+    if(cfg.configured){ window.__cfg=cfg; $("#fund").style.display="block"; }
+    else { st("Signed in ✓ — return to your desktop.","ok"); }
   }catch(e){ st("Failed: "+(e.message||e),"err"); $("#go").disabled=false; }
+};
+
+$("#fund").onclick=async()=>{
+  const cfg=window.__cfg; if(!cfg)return; $("#fund").disabled=true;
+  try{
+    const addr=$("#addr").textContent;
+    st("Minting test USDC + gas…");
+    const f=await (await fetch("/api/faucet",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({address:addr})})).json();
+    if(f.error) throw new Error(f.error);
+    st("Approve the app to spend your USDC…");
+    const a=await window.PasskeyWallet.approveSpend(cfg);
+    st(`Ready ✓ — ${f.usdc} USDC funded${a.already?"":" & spending authorized"}. Return to your desktop.`,"ok");
+    $("#fund").style.display="none";
+  }catch(e){ st("Funding failed: "+(e.message||e),"err"); $("#fund").disabled=false; }
 };
 </script>
 </body>

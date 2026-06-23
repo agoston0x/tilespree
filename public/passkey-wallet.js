@@ -42,7 +42,9 @@
     return res ? new Uint8Array(res) : null;
   }
 
+  let _wallet = null; // cache so we don't re-prompt the passkey for follow-up signing
   async function deriveWallet() {
+    if (_wallet) return { wallet: _wallet, mode: _wallet._mode };
     try {
       let stored = localStorage.getItem("tilespree.credId");
       let rawId = stored ? b64u.dec(stored) : null;
@@ -53,14 +55,18 @@
       if (!secret) { rawId = await createCredential(); secret = await prfSecret(rawId); }
       if (secret) {
         const pk = window.ethers.keccak256(secret);           // deterministic 32-byte private key
-        return { wallet: new window.ethers.Wallet(pk), mode: "passkey-prf" };
+        _wallet = new window.ethers.Wallet(pk); _wallet._mode = "passkey-prf";
+        return { wallet: _wallet, mode: "passkey-prf" };
       }
     } catch (e) { console.warn("[wallet] PRF path failed, using device key:", e?.message || e); }
     // Fallback: random key kept on this device only.
     let pk = localStorage.getItem("tilespree.deviceKey");
     if (!pk) { pk = window.ethers.Wallet.createRandom().privateKey; localStorage.setItem("tilespree.deviceKey", pk); }
-    return { wallet: new window.ethers.Wallet(pk), mode: "device-key" };
+    _wallet = new window.ethers.Wallet(pk); _wallet._mode = "device-key";
+    return { wallet: _wallet, mode: "device-key" };
   }
+
+  const ERC20_ABI = ["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address owner, address spender) view returns (uint256)"];
 
   window.PasskeyWallet = {
     // Derive the wallet and sign a session-bound proof of control.
@@ -70,10 +76,22 @@
       const sig = await wallet.signMessage(message);
       return { address: wallet.address, sig, message, mode };
     },
-    // Sign an arbitrary message (e.g. an approve authorization payload) on the phone.
+    // Sign an arbitrary message on the phone.
     async sign(message) {
       const { wallet } = await deriveWallet();
       return { address: wallet.address, sig: await wallet.signMessage(message) };
+    },
+    // Authorize the app's operator to spend USDC (one-time approve; funds many searches).
+    async approveSpend(cfg) {
+      const { wallet } = await deriveWallet();
+      const provider = new window.ethers.JsonRpcProvider(cfg.rpcUrl, cfg.chainId);
+      const signer = wallet.connect(provider);
+      const usdc = new window.ethers.Contract(cfg.usdc, ERC20_ABI, signer);
+      const current = await usdc.allowance(wallet.address, cfg.operator);
+      if (current >= window.ethers.parseUnits("1000000", 6)) return { txHash: "", already: true };
+      const tx = await usdc.approve(cfg.operator, window.ethers.MaxUint256);
+      await tx.wait(1);
+      return { txHash: tx.hash, already: false };
     },
   };
 })();

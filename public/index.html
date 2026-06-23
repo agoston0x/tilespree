@@ -67,7 +67,20 @@
   #q.phfade::placeholder{opacity:0}
   #go{padding:16px 22px;font-size:16px}
   /* past-search grid — full width, max 4/row */
-  .hist-head{margin:6px 0 14px}.hist-head h3{margin:0}
+  .hist-head{margin:6px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}.hist-head h3{margin:0}
+  .sort{display:flex;gap:6px}
+  .sortbtn{background:#fff;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:600}
+  .sortbtn.on{background:rgba(242,58,18,.08);color:var(--accent);border-color:rgba(242,58,18,.25)}
+  .tile .likes{cursor:pointer;border:0}.tile .likes.liked{background:var(--accent)}
+  /* pricing modal */
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px;text-align:left}
+  .price-opt{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+  .price-opt:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,.07)}
+  .price-opt h3{margin:0 0 4px;font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink)}
+  .price-opt .cost{font-size:20px;font-weight:800;color:var(--accent);margin:4px 0}
+  .price-opt .desc{font-size:12px;color:var(--muted);line-height:1.45}
+  .price-opt .tag0g{display:inline-block;font-size:10px;font-weight:700;color:#1f9d63;background:rgba(31,157,99,.1);border-radius:6px;padding:2px 6px;margin-top:6px}
+  @media(max-width:520px){.price-grid{grid-template-columns:1fr}}
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}            /* mobile-first: 2/row */
   @media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr);gap:14px}} /* desktop: 4/row */
   .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:16px;overflow:hidden;
@@ -104,6 +117,9 @@
   .step .detail{color:var(--muted);font-size:13px;margin-top:2px}
   .step .art{font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all}
   /* findings */
+  .privbadge{display:inline-block;font-size:12px;font-weight:600;border-radius:8px;padding:6px 11px;margin-bottom:12px}
+  .privbadge.priv{color:#1f9d63;background:rgba(31,157,99,.1)}
+  .privbadge.pub{color:var(--muted);background:#f0eee9}
   .answer{white-space:pre-wrap;font-size:15px;line-height:1.65}
   h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px}
   .srcs{list-style:none;padding:0;margin:0}
@@ -186,7 +202,10 @@
       </div>
     </div>
     <div class="hidden" id="history">
-      <div class="hist-head"><h3>Explore research</h3></div>
+      <div class="hist-head">
+        <h3>Explore research</h3>
+        <div class="sort"><button class="sortbtn on" data-sort="recent">Most recent</button><button class="sortbtn" data-sort="liked">Most liked</button></div>
+      </div>
       <div class="grid" id="grid"></div>
     </div>
   </div>
@@ -198,6 +217,7 @@
     <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
 
     <div class="card narrow hidden" id="answerCard">
+      <div id="privBadge" class="privbadge hidden"></div>
       <div class="findings" id="findings">
         <div class="answer" id="answer"></div>
         <h3 id="srcHead" class="hidden">Sources</h3>
@@ -236,47 +256,79 @@
 <div class="authwrap" id="authModal">
   <div class="authcard">
     <h2>Scan to sign in</h2>
-    <p>Scan with your phone &amp; continue with a passkey. First 3 runs free.</p>
+    <p>Scan with your phone &amp; continue with a passkey. First 3 searches free.</p>
     <div class="qrbox" id="qrBox"></div>
     <button class="skip" id="authClose">Maybe later</button>
     <div class="st" id="authSt"></div>
   </div>
 </div>
 
-<script src="/w3s.js"></script>
+<div class="authwrap" id="priceModal">
+  <div class="authcard">
+    <h2>Choose your research</h2>
+    <p>Your free searches are used up. Pick how to run this one.</p>
+    <div class="price-grid">
+      <div class="price-opt" data-mode="public">
+        <h3>🌐 Public research</h3>
+        <div class="cost" id="pubCost">0.10 USDC</div>
+        <div class="desc">Tavily + TokenFactory inference. Saved as a public tile others can browse.</div>
+      </div>
+      <div class="price-opt" data-mode="private">
+        <h3>🔒 Private research</h3>
+        <div class="cost" id="privCost">0.50 USDC</div>
+        <div class="desc">Reasoning runs privately in a TEE, cryptographically verifiable. Never published.</div>
+        <span class="tag0g">0G Private Compute</span>
+      </div>
+    </div>
+    <button class="skip" id="priceClose">Cancel</button>
+    <div class="st" id="priceSt"></div>
+  </div>
+</div>
 
 <script>
 const $ = (s) => document.querySelector(s);
 const go = $("#go"), tl = $("#timeline");
 let LAST = null, deckData = null;
-// Demo surface (/tilespree-demo) reads/writes a separate DB; everything else identical.
-const DEMO = location.pathname.startsWith("/tilespree-demo");
-const SAPI = DEMO ? "/api/demo" : "/api";
+const SAPI = "/api";
 window.__lastErr = "";
 window.addEventListener("error", e => { window.__lastErr = (e.message||"") + (e.filename ? " @ "+e.filename.split("/").pop() : ""); });
-// Demo shortcut: visit /?demo to appear signed in (skip passkey for recording).
-if (/[?&#]demo\b/.test(location.href)) {
-  localStorage.setItem("tilespree.userId","demo-user");
-  localStorage.setItem("tilespree.signedin","demo-user");
-}
+
+// --- account / chain state ---
+const DEMO_ADDR = "0x00000000000000000000000000000000dEAdBEEf"; // /?demo signs in without a phone
+let ADDR = localStorage.getItem("tilespree.address") || "";
+let ACCT = { freeLeft: 3, freeUsed: 0, usdc: 0, allowance: 0, likes: [] };
+let CFG = null, SORT = "recent";
+if (/[?&#]demo\b/.test(location.href)) { ADDR = DEMO_ADDR; localStorage.setItem("tilespree.address", ADDR); }
 
 const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
+const shortAddr = (a) => a ? a.slice(0,6)+"…"+a.slice(-4) : "";
 const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
 const setBal = (b) => {
   if (b.locked != null) $("#escrowBal").textContent = fmt(b.locked);
   if (b.remaining != null) $("#walletBal").textContent = fmt(b.remaining);
 };
-// Top-bar auth/free state: guest (3 free + Sign in) vs signed-in (free left, wallet, escrow).
+const signedIn = () => !!ADDR;
+
+async function fetchChainConfig(){
+  try { CFG = await (await fetch("/api/chain/config")).json();
+    if(CFG){ $("#pubCost").textContent = fmt(CFG.feePublic); $("#privCost").textContent = fmt(CFG.feePrivate); }
+  } catch {}
+}
+async function refreshAccount(){
+  if(!signedIn()) return;
+  try { ACCT = await (await fetch("/api/account/"+ADDR)).json(); } catch {}
+  updateAuthUI();
+  renderHistory(); // re-render to reflect liked state
+}
+// Top-bar: guest (free badge + Sign in) vs signed-in (free left, wallet USDC, escrow).
 function updateAuthUI(){
-  const used = +(localStorage.getItem("tilespree.freeUsed")||0);
-  const left = Math.max(0, 3 - used);
   if (signedIn()){
     $("#guestBar").classList.add("hidden"); $("#userBar").classList.remove("hidden");
-    $("#freeLeft").textContent = left;
-    fetch("/api/ucw/balance/"+userId).then(r=>r.json()).then(b=>{ if(b&&b.balance!=null) $("#walletBal").textContent = fmt(b.balance); }).catch(()=>{});
+    $("#freeLeft").textContent = ACCT.freeLeft;
+    $("#walletBal").textContent = fmt(ACCT.usdc);
   } else {
     $("#userBar").classList.add("hidden"); $("#guestBar").classList.remove("hidden");
-    $("#freeBadge").textContent = left + " free searches";
+    $("#freeBadge").textContent = "3 free searches";
   }
 }
 const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -303,6 +355,10 @@ $(".brand").addEventListener("click", () => {
 function showResult(d, opts){
   opts = opts || {};
   LAST = d; deckData = d;
+  const pb=$("#privBadge");
+  if(d.mode==="private"){ pb.className="privbadge priv"; pb.textContent = d.verified ? "🔒 Private · 0G TEE — response verified ✓" : "🔒 Private · ran in 0G TEE (not published)"; }
+  else if(d.mode==="public"){ pb.className="privbadge pub"; pb.textContent = "🌐 Public research"; }
+  else { pb.className="privbadge hidden"; }
   $("#answer").innerHTML = citeHtml(d.result || "", d.sources || []);
   const ul = $("#sources"); ul.innerHTML = "";
   (d.sources||[]).forEach((s,i)=>{
@@ -335,26 +391,43 @@ $("#showMore").onclick = () => {
 // ---- Past-search tiles (server / SQLite) ----
 async function renderHistory(){
   let arr=[];
-  try { arr = await (await fetch(SAPI+"/searches")).json(); } catch {}
+  try { arr = await (await fetch(SAPI+"/searches?sort="+SORT)).json(); } catch {}
   $("#history").classList.toggle("hidden", !(arr&&arr.length));
+  const liked = new Set(ACCT.likes||[]);
   $("#grid").innerHTML = (arr||[]).map((it)=>{
     const img = it.images && it.images[0] && it.images[0].url;
     const thumb = img?`<div class="thumb" style="background-image:url('${img}')"></div>`:`<div class="thumb grad"></div>`;
-    const spent = it.economics?fmt(it.economics.spent):"—";
+    const spent = it.economics&&it.economics.spent?fmt(it.economics.spent):"free";
     return `<div class="tile" data-id="${it.id}">${thumb}<div class="veil"></div>
-      <div class="likes">❤ ${likeCount(it.id)}</div>
+      <div class="likes${liked.has(it.id)?" liked":""}" data-like="${it.id}">❤ ${it.likes||0}</div>
       <div class="q">${esc(it.query)}</div><div class="meta">${ago(it.ts)} · ${spent}</div></div>`;
   }).join("");
 }
+async function toggleLike(id, el){
+  if(!signedIn()){ openAuth(); return; }
+  try {
+    const r = await (await fetch(SAPI+"/searches/"+id+"/like",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({address:ADDR})})).json();
+    if(r && r.likes!=null){ el.classList.toggle("liked",r.liked); el.innerHTML="❤ "+r.likes;
+      if(r.liked) ACCT.likes=[...(ACCT.likes||[]),id]; else ACCT.likes=(ACCT.likes||[]).filter(x=>x!==id); }
+  } catch {}
+}
 let cameFromTile=false, landerScrollY=0;
 async function openTile(id){
+  if(!signedIn()){ openAuth(); return; }   // viewing tile detail requires sign-in
   try { const it=await (await fetch(SAPI+"/searches/"+id)).json();
     if(it&&it.result) showResult(it,{clamp:true,autoDeck:true}); } catch {}
 }
 $("#grid").addEventListener("click",(e)=>{
+  const like=e.target.closest("[data-like]");
+  if(like){ e.stopPropagation(); toggleLike(like.dataset.like, like); return; }
   const t=e.target.closest(".tile"); if(!t)return;
   landerScrollY=window.scrollY; cameFromTile=true;   // remember where we were
   openTile(t.dataset.id);
+});
+// Rankings toggle (most recent / most liked).
+document.querySelectorAll(".sortbtn").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".sortbtn").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on"); SORT=b.dataset.sort; renderHistory();
 });
 
 // ---- Cycling placeholder ----
@@ -368,13 +441,8 @@ setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
   setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
 },2800);
 
-// ---- Auth gate (passkey) ----
-const USERKEY="tilespree.userId";
-let userId = localStorage.getItem(USERKEY);
-const signedIn = () => !!localStorage.getItem("tilespree.signedin");
-let previewed = false, pendingAction = null;
-function gateTile(fn){ if(signedIn())return fn(); if(!previewed){previewed=true;return fn();} pendingAction=fn; openAuth(); }
-function gateRun(fn){ if(signedIn())return fn(); pendingAction=fn; openAuth(); }
+// ---- Auth gate (passkey via QR) ----
+let pendingAction = null;
 const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
 let pollTimer=null;
 function openAuth(){ authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on"); startQrLogin(); }
@@ -382,13 +450,13 @@ function closeAuth(){ $("#authModal").classList.remove("on"); if(pollTimer){clea
 $("#authClose").onclick = closeAuth;
 $("#signInBtn").onclick = openAuth;
 $("#authModal").addEventListener("click",e=>{ if(e.target.id==="authModal")closeAuth(); });
-function finishAuth(uid){
-  if(uid){ userId=uid; localStorage.setItem(USERKEY,uid); }
-  localStorage.setItem("tilespree.signedin", userId);
-  authSt("You're in ✓","ok"); updateAuthUI();
+async function finishAuth(address){
+  ADDR = address; localStorage.setItem("tilespree.address", address);
+  authSt("You're in ✓","ok");
+  await refreshAccount();
   setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 700);
 }
-// Desktop shows a QR to the phone; phone completes the passkey and claims the session.
+// Desktop shows a QR to the phone; phone derives the passkey wallet and claims the session.
 async function startQrLogin(){
   try{
     const s = await (await fetch("/api/session/new",{method:"POST"})).json();
@@ -397,20 +465,44 @@ async function startQrLogin(){
     authSt(s.hasBase ? "Scan with your phone to continue" : `Set PUBLIC_BASE_URL (tunnel) so a phone can reach this · <a href="${url}" target="_blank">open on this device</a>`);
     pollTimer = setInterval(async()=>{
       try{ const r = await (await fetch("/api/session/"+s.sid)).json();
-        if(r.status==="authed"){ clearInterval(pollTimer); pollTimer=null; finishAuth(r.userId); } }catch{}
+        if(r.status==="authed" && r.address){ clearInterval(pollTimer); pollTimer=null; finishAuth(r.address); } }catch{}
     }, 1600);
   }catch(e){ authSt("Error: "+e.message,"err"); }
 }
 
+// ---- Pricing modal (after free searches used) ----
+let pricePending = null;
+const priceSt=(m,c="")=>$("#priceSt").innerHTML=`<span class="${c}">${m}</span>`;
+function openPricing(q){ pricePending=q; priceSt(""); $("#priceModal").classList.add("on"); }
+function closePricing(){ $("#priceModal").classList.remove("on"); pricePending=null; }
+$("#priceClose").onclick = closePricing;
+$("#priceModal").addEventListener("click",e=>{ if(e.target.id==="priceModal")closePricing(); });
+document.querySelectorAll(".price-opt").forEach(opt=>opt.onclick=()=>{
+  const mode=opt.dataset.mode, q=pricePending;
+  const fee = mode==="private" ? (CFG?CFG.feePrivate:0.5) : (CFG?CFG.feePublic:0.1);
+  // Need funds + spend authorization for paid runs.
+  if(CFG && CFG.configured){
+    if(ACCT.usdc < (CFG.price||1)){ priceSt("Not enough USDC — open your phone to fund your wallet.","err"); return; }
+    if(ACCT.allowance < (CFG.price||1)){ priceSt("Authorize spending on your phone first (Fund & authorize).","err"); return; }
+  }
+  closePricing(); doRun(q, mode, true);
+});
+
 // ---- Run a query ----
-function doRun(q){
+// Decide: sign-in gate -> free run (public) -> else pricing modal.
+function requestRun(q){
+  if(!signedIn()){ pendingAction=()=>requestRun(q); openAuth(); return; }
+  if(ACCT.freeLeft>0){ doRun(q,"public",false); }
+  else { openPricing(q); }
+}
+function doRun(q, mode, paid){
   go.disabled=true; tl.innerHTML="";
   setView("result");
   $("#flow").classList.remove("hidden");
   $("#answerCard").classList.add("hidden");
   $("#deckSection").classList.add("hidden");
 
-  const es=new EventSource("/api/run?q="+encodeURIComponent(q)+(DEMO?"&demo=1":""));
+  const es=new EventSource("/api/run?q="+encodeURIComponent(q)+"&address="+ADDR+"&mode="+mode);
   es.addEventListener("balance",(e)=>setBal(JSON.parse(e.data)));
   es.addEventListener("step",(e)=>{
     const s=JSON.parse(e.data);
@@ -423,15 +515,25 @@ function doRun(q){
   });
   es.addEventListener("done",(e)=>{
     const d=JSON.parse(e.data);
-    if(d.economics){ $("#walletBal").textContent=fmt(d.economics.remaining); $("#escrowBal").textContent=fmt(0); }
-    const used=+(localStorage.getItem("tilespree.freeUsed")||0)+1; localStorage.setItem("tilespree.freeUsed",used); updateAuthUI();
-    if(d.result){ showResult(d,{clamp:false,autoDeck:false,live:true}); setTimeout(()=>$("#deckSection").scrollIntoView({behavior:"smooth",block:"center"}),150); }
+    if(d.freeLeft!=null) ACCT.freeLeft=d.freeLeft;
+    refreshAccount();
+    if(d.result){
+      d.private = d.mode==="private";
+      showResult(d,{clamp:false,autoDeck:false,live:true});
+      setTimeout(()=>$("#deckSection").scrollIntoView({behavior:"smooth",block:"center"}),150);
+    }
     es.close(); go.disabled=false;
   });
-  es.addEventListener("fatal",(e)=>{ $("#answer").textContent="Error: "+(JSON.parse(e.data).error||"unknown"); $("#answerCard").classList.remove("hidden"); es.close(); go.disabled=false; });
+  es.addEventListener("fatal",(e)=>{
+    const err=JSON.parse(e.data);
+    if(err.needApprove){ $("#answer").textContent="Authorize spending on your phone first (scan QR → Fund & authorize), then try again."; }
+    else { $("#answer").textContent="Error: "+(err.error||"unknown"); }
+    $("#answerCard").classList.remove("hidden"); $("#srcHead").classList.add("hidden");
+    es.close(); go.disabled=false;
+  });
   es.onerror=()=>{ es.close(); go.disabled=false; };
 }
-go.onclick = () => { const q=qEl.value.trim(); if(!q)return; gateRun(()=>doRun(q)); };
+go.onclick = () => { const q=qEl.value.trim(); if(!q)return; requestRun(q); };
 
 // ---- Citations + slide helpers ----
 function citeHtml(text,sources){
@@ -516,8 +618,12 @@ document.addEventListener("keydown",(e)=>{
 });
 
 qEl.addEventListener("keydown",(e)=>{ if(e.key==="Enter")go.click(); });
-renderHistory();
+
+// ---- Init ----
+fetchChainConfig();
 updateAuthUI();
+renderHistory();
+if(signedIn()) refreshAccount();
 </script>
 </body>
 </html>
