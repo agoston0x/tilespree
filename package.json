@@ -14,6 +14,7 @@
   "description": "",
   "type": "module",
   "dependencies": {
+    "@0gfoundation/0g-compute-ts-sdk": "^0.8.4",
     "@circle-fin/developer-controlled-wallets": "^10.6.0",
     "@circle-fin/user-controlled-wallets": "^10.6.0",
     "@circle-fin/w3s-pw-web-sdk": "^1.1.11",
@@ -23,7 +24,10 @@
     "@solana/web3.js": "^1.98.4",
     "@tavily/core": "^0.7.6",
     "better-sqlite3": "^12.11.1",
+    "circomlibjs": "^0.1.7",
+    "crypto-js": "^4.2.0",
     "dotenv": "^17.4.2",
+    "ethers": "^6.17.0",
     "express": "^5.2.1",
     "openai": "^6.44.0",
     "zod": "^4.4.3"

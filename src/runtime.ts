@@ -1,6 +1,8 @@
-// Agent runtime — Circle (pay+escrow) + Tavily (research) + TokenFactory (inference).
+// Agent runtime — Circle (pay+escrow) + Tavily (research) + 0G Compute private TEE inference.
 // Query -> pay(user->escrow) -> Tavily -> inference -> settle(fee) -> refund -> answer.
 import { answer } from "./llm.js";
+import { INFERENCE_PROVIDER } from "./config.js";
+import { zgConfigured } from "./zg.js";
 import { research, tavilyConfigured, type Source } from "./tavily.js";
 import {
   circleConfigured, payToEscrow, settleToAgent, refundToUser, usdcBalance, WALLETS,
@@ -62,15 +64,28 @@ export async function runFlow(
     return { detail: `${sources.length} sources · ${images.length} images`, artifact: { topResult: sources[0]?.url ?? "—" } };
   }));
 
-  // 3. TokenFactory inference (grounded in research).
+  // 3. Inference (grounded in research) — 0G private TEE inference, or Nebius fallback.
   let result = "";
-  push(await safe("inference", "TokenFactory inference", async () => {
+  const inferLabel = INFERENCE_PROVIDER === "0g" && zgConfigured()
+    ? "0G Compute · private inference (TEE)"
+    : "TokenFactory inference";
+  push(await safe("inference", inferLabel, async () => {
     const a = await answer(query, context || undefined);
     result = a.text;
-    return { detail: `Model: ${a.model}`, artifact: {
+    const art: Record<string, string | number> = {
       model: a.model,
       tokens: a.usage ? `${a.usage.prompt_tokens}+${a.usage.completion_tokens}` : "n/a",
-    } };
+    };
+    let detail = `Model: ${a.model}`;
+    if (a.provider === "0g") {
+      detail = `0G TEE · ${a.model}`;
+      art.network = "0G testnet";
+      art.tee = a.verified === true ? "verified ✓"
+        : a.verified === false ? "verification failed ✗"
+        : "attested (TEE)";
+      if (a.verifyUrl) art.provider = a.verifyUrl;
+    }
+    return { detail, artifact: art };
   }));
 
   // 4. Settle flat fee: escrow -> agent.

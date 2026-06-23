@@ -1,10 +1,23 @@
-// Inference adapter — OpenAI-compatible. Nebius TokenFactory (or any compatible) via env.
+// Inference router. Prefers 0G Compute (private TEE inference, verifiable + on-chain
+// billed); falls back to an OpenAI-compatible endpoint (Nebius TokenFactory) so the
+// demo keeps working when the 0G ledger isn't funded.
 import OpenAI from "openai";
-import { LLM_BASE_URL, LLM_API_KEY, LLM_MODEL } from "./config.js";
+import { LLM_BASE_URL, LLM_API_KEY, LLM_MODEL, INFERENCE_PROVIDER } from "./config.js";
+import { zgConfigured, zgAnswer } from "./zg.js";
+
+export type Answer = {
+  text: string;
+  model: string;
+  usage: any;
+  provider: "0g" | "nebius";
+  providerAddress?: string;
+  verified?: boolean | null;
+  verifyUrl?: string;
+};
 
 const client = new OpenAI({ baseURL: LLM_BASE_URL, apiKey: LLM_API_KEY });
 
-export async function answer(query: string, context?: string): Promise<{ text: string; model: string; usage: any }> {
+async function nebiusAnswer(query: string, context?: string): Promise<Answer> {
   const system = context
     ? "You are a research agent. Answer the user's question using the provided sources. Cite sources as [n]. Be concise."
     : "You are a concise research agent. Answer clearly in a short paragraph.";
@@ -21,5 +34,17 @@ export async function answer(query: string, context?: string): Promise<{ text: s
     text: res.choices[0]?.message?.content ?? "",
     model: res.model || LLM_MODEL,
     usage: res.usage ?? null,
+    provider: "nebius",
   };
+}
+
+export async function answer(query: string, context?: string): Promise<Answer> {
+  if (INFERENCE_PROVIDER === "0g" && zgConfigured()) {
+    try {
+      return await zgAnswer(query, context);
+    } catch (e: any) {
+      console.warn("[0g] inference failed, falling back to Nebius:", e?.message || e);
+    }
+  }
+  return nebiusAnswer(query, context);
 }
