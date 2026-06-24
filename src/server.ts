@@ -172,8 +172,5 @@ app.get("/api/run", async (req, res) => {
 // Unlink/reset page (flushes the on-device passkey + wallet client-side; tiles persist).
 app.get("/reset", (_req, res) => res.sendFile(path.resolve("public/reset.html")));
 
-// Demo video page (drop the file at public/demo.mp4)
-app.get("/video", (_req, res) => res.sendFile(path.resolve("public/video.html")));
-
 const PORT = Number(process.env.PORT || 5173);
 app.listen(PORT, () => console.log(`▸ http://localhost:${PORT}`));
