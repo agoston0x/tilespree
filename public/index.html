@@ -72,7 +72,12 @@
   @media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr);gap:14px}} /* desktop: 4/row */
   .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:16px;overflow:hidden;
     cursor:pointer;background:#fff;display:flex;flex-direction:column;justify-content:flex-end;
-    transition:transform .12s,box-shadow .12s}
+    transition:opacity .4s,transform .12s,box-shadow .12s}
+  /* intro reveal sequence */
+  .topbar{transition:opacity .5s}#history{transition:opacity .4s}
+  body.intro .topbar{opacity:0;pointer-events:none}
+  body.intro #history{opacity:0}
+  body.intro .tile{opacity:0}
   .tile:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12)}
   .tile .thumb{position:absolute;inset:0;background-size:cover;background-position:center}
   .tile .thumb.grad{background:linear-gradient(135deg,#f23a12,#ff8a3d 60%,#ffb05a)}
@@ -187,12 +192,14 @@
   .tile .like{position:absolute;bottom:9px;right:9px;z-index:3;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.42);color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px);cursor:pointer;opacity:0;transition:opacity .12s}
   .tile:hover .like,.tile .like.liked{opacity:1}.tile .like.liked{background:var(--accent)}
   .run-wrap{position:relative;display:flex;gap:10px}
-  /* absolutely placed to the right of Run so revealing it doesn't move Run */
-  .run-private{position:absolute;left:calc(100% + 10px);top:0;background:var(--teal);white-space:nowrap;
-    opacity:0;pointer-events:none;transform:translateX(-6px);transition:opacity .15s,transform .15s}
-  .run-private.show{opacity:1;pointer-events:auto;transform:none}
+  /* gp-wrap is placed to the right of Run so revealing it doesn't move Run */
+  .gp-wrap{position:absolute;left:calc(100% + 10px);top:0;opacity:0;pointer-events:none;transform:translateX(-6px);transition:opacity .15s,transform .15s}
+  .gp-wrap.show{opacity:1;pointer-events:auto;transform:none}
+  .run-private{background:var(--teal);white-space:nowrap;padding:16px 18px;font-size:16px}  /* same height as Run */
+  .gp-cap{display:block;text-align:center;font-size:11px;color:var(--teal);font-weight:600;margin-top:3px}
   @media(max-width:600px){.run-wrap{flex-wrap:wrap}
-    .run-private{position:static;left:auto;top:auto;opacity:1;pointer-events:auto;transform:none;width:100%;margin-top:2px}}
+    .gp-wrap{position:static;left:auto;top:auto;opacity:1;pointer-events:auto;transform:none;width:100%;margin-top:2px}
+    .run-private{width:100%}}
   .wallet-panel .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:4px 0 8px;text-align:left}
   .wallet-panel .row2 .k{font-size:12px;color:var(--muted)}.wallet-panel .row2 .v{font-family:ui-monospace,Menlo,monospace;font-size:13px}
   .wallet-panel .copy{background:#fff;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;width:auto}
@@ -200,7 +207,7 @@
   .wallet-panel .confirm:disabled{opacity:.45}
 </style>
 </head>
-<body>
+<body class="intro">
 <div class="topbar">
   <div class="brand">
     <div class="logo" title="tile spree"><span class="l1"><b>t</b><b>i</b><b>l</b><b>e</b></span><span class="l2"><b>s</b><b>p</b><b>r</b><b>e</b><b>e</b></span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
@@ -225,11 +232,11 @@
       <div class="row run-wrap">
         <input id="q" placeholder="Research anything…" autocomplete="off" />
         <button id="go">Run</button>
-        <button id="goPrivate" class="run-private">Run private</button>
+        <div class="gp-wrap"><button id="goPrivate" class="run-private">Run private</button><span class="gp-cap">with 0G</span></div>
       </div>
     </div>
     <div class="hidden" id="history">
-      <div class="hist-head"><h3>Explore research</h3></div>
+      <div class="hist-head"><h3>Explore</h3></div>
       <div class="grid" id="grid"></div>
     </div>
   </div>
@@ -497,11 +504,27 @@ const PROMPTS=["What is the history of…","The development role of…","List ev
   "Compare the approaches to…","Trace the origins of…","Why did … happen?",
   "What are the latest breakthroughs in…","Who are the key players in…",
   "Explain how … actually works","Map the landscape of…"];
-const qEl=$("#q"); let pi=0; qEl.placeholder=PROMPTS[0];
-setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
-  qEl.classList.add("phfade");
-  setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
-},2800);
+const qEl=$("#q"); let pi=0;
+function startPromptCycle(){
+  qEl.placeholder=PROMPTS[0];
+  setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
+    qEl.classList.add("phfade");
+    setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
+  },2800);
+}
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+// Intro: empty input → typewrite a tagline → reveal top bar → tiles row by row → start cycling.
+async function introSequence(){
+  const text="Research any topic. Share, discover, like.";
+  qEl.placeholder="";
+  for(let i=1;i<=text.length;i++){ qEl.placeholder=text.slice(0,i); await sleep(26); }
+  await sleep(280);
+  document.querySelectorAll(".tile").forEach((t,i)=>{ t.style.transitionDelay=(i*55)+"ms"; });
+  document.body.classList.remove("intro");        // top bar fades in, tiles stagger in
+  await sleep(900);
+  document.querySelectorAll(".tile").forEach((t)=>{ t.style.transitionDelay=""; }); // reset so hover isn't delayed
+  startPromptCycle();
+}
 
 // ---- Auth gate (passkey) ----
 let pendingAction = null;
@@ -612,9 +635,15 @@ $("#walletModal").addEventListener("click",e=>{ if(e.target.id==="walletModal")c
 $("#wpCopy").onclick = () => { navigator.clipboard?.writeText(ADDR); $("#wpCopy").textContent="Copied ✓"; setTimeout(()=>$("#wpCopy").textContent="Copy",900); };
 $("#wpRun").onclick = () => { const q=privatePending; closeWallet(); doRun(q,"private",true); };
 $("#goPrivate").onclick = () => { const q=qEl.value.trim(); if(!q)return; requestPrivate(q); };
-// Desktop: reveal "Run private" only while hovering Run (or the revealed button); mobile = always shown (CSS).
-$("#go").addEventListener("mouseenter", () => $("#goPrivate").classList.add("show"));
-$(".run-wrap").addEventListener("mouseleave", () => $("#goPrivate").classList.remove("show"));
+// Desktop: reveal "Run private" while hovering Run OR the button itself (it's positioned outside the
+// row, so track both with a small grace delay so it stays clickable).
+let _gpTimer=null;
+const showGP = () => { clearTimeout(_gpTimer); $(".gp-wrap").classList.add("show"); };
+const hideGP = () => { _gpTimer = setTimeout(()=>$(".gp-wrap").classList.remove("show"), 220); };
+$("#go").addEventListener("mouseenter", showGP);
+$("#go").addEventListener("mouseleave", hideGP);
+$(".gp-wrap").addEventListener("mouseenter", showGP);
+$(".gp-wrap").addEventListener("mouseleave", hideGP);
 function doRun(q, mode, paid){
   go.disabled=true; tl.innerHTML="";
   // open the modal in its "running" state: show THIS query, live timeline, deck/answer hidden until done
@@ -759,7 +788,8 @@ qEl.addEventListener("keydown",(e)=>{ if(e.key==="Enter")go.click(); });
 // ---- Init ----
 fetchChainConfig();
 updateAuthUI();
-renderHistory();
+renderHistory().then(introSequence);
+setTimeout(()=>document.body.classList.remove("intro"), 5000); // safety: never stay hidden
 if(signedIn()) refreshAccount();
 </script>
 </body>
