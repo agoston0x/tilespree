@@ -187,8 +187,12 @@
   .tile .like{position:absolute;bottom:9px;right:9px;z-index:3;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.42);color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px);cursor:pointer;opacity:0;transition:opacity .12s}
   .tile:hover .like,.tile .like.liked{opacity:1}.tile .like.liked{background:var(--accent)}
   .run-wrap{position:relative;display:flex;gap:10px}
-  .run-private{background:var(--teal);white-space:nowrap;max-width:0;padding-left:0;padding-right:0;opacity:0;overflow:hidden;transition:max-width .18s,opacity .18s,padding .18s}
-  .run-wrap:hover .run-private,.run-private.show{max-width:170px;opacity:1;padding-left:18px;padding-right:18px}
+  /* absolutely placed to the right of Run so revealing it doesn't move Run */
+  .run-private{position:absolute;left:calc(100% + 10px);top:0;background:var(--teal);white-space:nowrap;
+    opacity:0;pointer-events:none;transform:translateX(-6px);transition:opacity .15s,transform .15s}
+  .run-private.show{opacity:1;pointer-events:auto;transform:none}
+  @media(max-width:600px){.run-wrap{flex-wrap:wrap}
+    .run-private{position:static;left:auto;top:auto;opacity:1;pointer-events:auto;transform:none;width:100%;margin-top:2px}}
   .wallet-panel .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:4px 0 8px;text-align:left}
   .wallet-panel .row2 .k{font-size:12px;color:var(--muted)}.wallet-panel .row2 .v{font-family:ui-monospace,Menlo,monospace;font-size:13px}
   .wallet-panel .copy{background:#fff;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;width:auto}
@@ -221,7 +225,7 @@
       <div class="row run-wrap">
         <input id="q" placeholder="Research anything…" autocomplete="off" />
         <button id="go">Run</button>
-        <button id="goPrivate" class="run-private">🔒 Run private</button>
+        <button id="goPrivate" class="run-private">Run private</button>
       </div>
     </div>
     <div class="hidden" id="history">
@@ -608,7 +612,9 @@ $("#walletModal").addEventListener("click",e=>{ if(e.target.id==="walletModal")c
 $("#wpCopy").onclick = () => { navigator.clipboard?.writeText(ADDR); $("#wpCopy").textContent="Copied ✓"; setTimeout(()=>$("#wpCopy").textContent="Copy",900); };
 $("#wpRun").onclick = () => { const q=privatePending; closeWallet(); doRun(q,"private",true); };
 $("#goPrivate").onclick = () => { const q=qEl.value.trim(); if(!q)return; requestPrivate(q); };
-if(IS_MOBILE) $("#goPrivate").classList.add("show");   // no hover on mobile → always visible
+// Desktop: reveal "Run private" only while hovering Run (or the revealed button); mobile = always shown (CSS).
+$("#go").addEventListener("mouseenter", () => $("#goPrivate").classList.add("show"));
+$(".run-wrap").addEventListener("mouseleave", () => $("#goPrivate").classList.remove("show"));
 function doRun(q, mode, paid){
   go.disabled=true; tl.innerHTML="";
   // open the modal in its "running" state: show THIS query, live timeline, deck/answer hidden until done
