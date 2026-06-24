@@ -1,7 +1,7 @@
 # TileSpree — pay-per-query research with private 0G inference
 
 Browse a wall of past research **tiles**, or run your own: the agent researches (Tavily),
-reasons (AI inference), and you pay per query in **testnet USDC on the 0G chain** — funds
+reasons (AI inference), and you pay per query in **real testnet USDC (Arbitrum Sepolia)** — funds
 escrowed, a fee settled, the rest refunded. Choose **public** research (cheap, shared as a
 tile) or **private** research on **0G Compute**: your reasoning runs inside a **TEE** and the
 response is **cryptographically verifiable**, and the result is never published.
@@ -24,23 +24,24 @@ response is **cryptographically verifiable**, and the result is never published.
 - **Persistence**: SQLite (tiles, accounts/free-counter, likes).
 
 ## Stack
-- **0G Compute Network** — private (TEE) inference, verifiable via `processResponse`
-  (`@0gfoundation/0g-compute-ts-sdk`)
-- **0G Chain (testnet, Galileo)** — self-custody wallets + mock USDC escrow (ethers v6)
+- **0G Compute** — private (TEE) inference via the provider API-key proxy (OpenAI-compatible)
+- **0G Storage** — private results stored on-chain-backed storage; only the hash is kept (`@0glabs/0g-ts-sdk`)
+- **Arbitrum Sepolia** — real testnet **USDC** escrow (ethers v6), operator runs pay/settle/refund
 - **Tavily** — web research (sources + images)
 - **Nebius TokenFactory** — OpenAI-compatible fallback / public-tier inference
-- **WebAuthn (PRF)** — passkey-derived wallet, no PIN/no backup
+- **WebAuthn (PRF)** — passkey-derived self-custody wallet, no PIN/no backup
 - Node + TypeScript + Express, vanilla SSE-driven UI, better-sqlite3
 
 ## Run
 1. `npm install`
-2. `cp .env.example .env` and fill in `TAVILY_API_KEY`, Nebius `LLM_*`.
-3. **0G inference**: set `ZG_PRIVATE_KEY` (fund at https://faucet.0g.ai), then
-   `npx tsx scripts/zg-setup.ts` to create/fund the compute ledger.
-4. **On-chain payments**: with `OPERATOR_PRIVATE_KEY` (or `ZG_PRIVATE_KEY`) funded,
-   `npx tsx scripts/deploy-usdc.ts` and paste the printed `USDC_ADDRESS` into `.env`.
+2. `cp .env.example .env`; fill in `TAVILY_API_KEY`, Nebius `LLM_*`.
+3. **0G inference**: at the 0G compute dashboard, fund the main account + create an API key; set
+   `ZG_ENDPOINT` + `ZG_API_KEY` (no private key needed for inference).
+4. **0G Storage + USDC escrow**: set `ZG_PRIVATE_KEY` to a throwaway server wallet funded with
+   Galileo **0G** (storage) and a little **Arbitrum Sepolia ETH** (escrow gas). `USDC_ADDRESS`
+   defaults to Circle's Arbitrum Sepolia USDC.
 5. `node scripts/web/build-wallet.mjs` — bundles ethers for the phone wallet page (`public/ethers.js`).
-6. (For phone sign-in) set `PUBLIC_BASE_URL` to a tunnel (e.g. ngrok) so the QR is reachable.
+6. (Phone sign-in) set `PUBLIC_BASE_URL` to a public HTTPS origin so the QR is reachable.
 7. `npm run dev` → http://localhost:5173 (`npx tsx scripts/seed.ts` for sample tiles).
 
 Graceful fallback: without `ZG_PRIVATE_KEY` inference uses Nebius; without `USDC_ADDRESS` the

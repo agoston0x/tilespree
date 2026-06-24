@@ -4,7 +4,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { runFlow, PRICE, FEE_PUBLIC, FEE_PRIVATE } from "./runtime.js";
 import {
-  chainConfigured, usdcBalance, allowanceOf, mintUsdc, operatorAddress,
+  chainConfigured, usdcBalance, allowanceOf, gasBalance, dripGas, operatorAddress,
 } from "./chain.js";
 import { verifyLogin } from "./wallet.js";
 import {
@@ -13,7 +13,7 @@ import {
 } from "./db.js";
 import { downloadJson } from "./zgstorage.js";
 import {
-  ZG_CHAIN_ID, ZG_RPC_URL, ZG_EXPLORER, USDC_ADDRESS, AGENT_ADDRESS,
+  PAYMENT_CHAIN_ID, PAYMENT_RPC, PAYMENT_EXPLORER, USDC_ADDRESS, AGENT_ADDRESS, USDC_FAUCET_URL,
 } from "./config.js";
 
 const app = express();
@@ -21,8 +21,7 @@ app.use(express.json());
 app.use(express.static(path.resolve("public")));
 
 const FREE_LIMIT = Number(process.env.FREE_LIMIT || "3");
-const FAUCET_USDC = Number(process.env.FAUCET_USDC || "10");
-const FAUCET_GAS = process.env.FAUCET_GAS || "0.02"; // 0G sent for the user's approve gas
+const FAUCET_GAS = process.env.FAUCET_GAS || "0.001"; // payment-chain gas dripped for the user's approve
 
 // --- QR cross-device login: session pairing ---
 // Desktop opens a session + shows a QR to PUBLIC_BASE_URL/mobile.html?sid=...
@@ -54,10 +53,10 @@ app.post("/api/session/:sid/claim", (req, res) => {
 app.get("/api/chain/config", (_req, res) => {
   res.json({
     configured: chainConfigured(),
-    chainId: ZG_CHAIN_ID, rpcUrl: ZG_RPC_URL, explorer: ZG_EXPLORER,
+    chainId: PAYMENT_CHAIN_ID, rpcUrl: PAYMENT_RPC, explorer: PAYMENT_EXPLORER,
     usdc: USDC_ADDRESS, operator: chainConfigured() ? operatorAddress() : "",
     agent: AGENT_ADDRESS, price: PRICE, feePublic: FEE_PUBLIC, feePrivate: FEE_PRIVATE,
-    freeLimit: FREE_LIMIT,
+    freeLimit: FREE_LIMIT, usdcFaucet: USDC_FAUCET_URL,
   });
 });
 
@@ -76,25 +75,18 @@ app.get("/api/account/:address", async (req, res) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
-// --- faucet: mint test USDC (+ a little 0G for gas) to the user's address ---
+// --- gas drip: send a little payment-chain gas so the user can submit their approve.
+// Real USDC is NOT minted — the user gets it from the Circle faucet (usdcFaucet URL). ---
 app.post("/api/faucet", async (req, res) => {
   if (!chainConfigured()) return res.status(400).json({ error: "chain not configured" });
   const address = String(req.body?.address || "");
   if (!/^0x[0-9a-fA-F]{40}$/.test(address)) return res.status(400).json({ error: "bad address" });
   try {
-    const mint = await mintUsdc(address, FAUCET_USDC);
-    // Send a little 0G so the user can pay gas for their one-time approve.
     let gasTx = "";
-    try {
-      const { operator, provider } = await import("./chain.js");
-      const bal = await provider().getBalance(address);
-      if (bal === 0n) {
-        const { ethers } = await import("ethers");
-        const tx = await operator().sendTransaction({ to: address, value: ethers.parseEther(FAUCET_GAS) });
-        await tx.wait(1); gasTx = tx.hash;
-      }
-    } catch (e) { /* gas top-up best-effort */ }
-    res.json({ ok: true, minted: FAUCET_USDC, mintTx: mint.explorer, gasTx, usdc: await usdcBalance(address) });
+    if (await gasBalance(address) < Number(FAUCET_GAS) / 2) {
+      try { gasTx = (await dripGas(address, FAUCET_GAS)).txHash; } catch { /* best-effort */ }
+    }
+    res.json({ ok: true, gasTx, usdcFaucet: USDC_FAUCET_URL, usdc: await usdcBalance(address) });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 

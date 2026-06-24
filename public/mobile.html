@@ -58,14 +58,18 @@ $("#fund").onclick=async()=>{
   const cfg=window.__cfg; if(!cfg)return; $("#fund").disabled=true;
   try{
     const addr=$("#addr").textContent;
-    st("Minting test USDC + gas…");
+    st("Getting a little gas for the approve…");
     const f=await (await fetch("/api/faucet",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({address:addr})})).json();
     if(f.error) throw new Error(f.error);
+    if((f.usdc||0) <= 0){
+      st(`Send test USDC to your address first: get it at ${f.usdcFaucet} (Arbitrum Sepolia), to ${addr}. Then tap again.`,"err");
+      $("#fund").disabled=false; return;
+    }
     st("Approve the app to spend your USDC…");
     const a=await window.PasskeyWallet.approveSpend(cfg);
-    st(`Ready ✓ — ${f.usdc} USDC funded${a.already?"":" & spending authorized"}. Return to your desktop.`,"ok");
+    st(`Ready ✓ — ${f.usdc} USDC, spending ${a.already?"already authorized":"authorized"}. Return to your desktop.`,"ok");
     $("#fund").style.display="none";
-  }catch(e){ st("Funding failed: "+(e.message||e),"err"); $("#fund").disabled=false; }
+  }catch(e){ st("Failed: "+(e.message||e),"err"); $("#fund").disabled=false; }
 };
 </script>
 </body>

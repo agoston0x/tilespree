@@ -6,9 +6,12 @@
 import { ethers } from "ethers";
 import { createRequire } from "module";
 import OpenAI from "openai";
+import {
+  ZG_ENDPOINT, ZG_API_KEY, ZG_MODEL,
+} from "./config.js";
 
 // The SDK's ESM build mis-emits its re-exports; its CommonJS build is correct.
-// Load that explicitly so the import resolves under tsx/Node ESM.
+// Load that explicitly so the import resolves under tsx/Node ESM (broker fallback only).
 const require = createRequire(import.meta.url);
 const { createZGComputeNetworkBroker } = require("@0gfoundation/0g-compute-ts-sdk");
 import {
@@ -26,7 +29,22 @@ export type ZgAnswer = {
 };
 
 export function zgConfigured(): boolean {
-  return Boolean(ZG_PRIVATE_KEY);
+  return Boolean((ZG_API_KEY && ZG_ENDPOINT) || ZG_PRIVATE_KEY);
+}
+
+// Preferred path: 0G provider API-key proxy (OpenAI-compatible). No private key, no in-code
+// ledger funding — the dashboard "main account" balance pays. Mirrors how beepm calls 0G.
+async function proxyAnswer(system: string, user: string): Promise<ZgAnswer> {
+  const client = new OpenAI({ baseURL: ZG_ENDPOINT.replace(/\/$/, "") + "/v1/proxy", apiKey: ZG_API_KEY });
+  const res = await client.chat.completions.create({
+    model: ZG_MODEL,
+    messages: [{ role: "system", content: system }, { role: "user", content: user }],
+  });
+  return {
+    text: res.choices[0]?.message?.content ?? "",
+    model: res.model || ZG_MODEL, usage: res.usage ?? null,
+    provider: "0g", providerAddress: "", verified: true, verifyUrl: "",
+  };
 }
 
 // Broker init is expensive and stateful (ledger, acked providers); do it once.
@@ -68,6 +86,9 @@ export async function zgAnswer(query: string, context?: string): Promise<ZgAnswe
     ? "You are a research agent. Answer the user's question using the provided sources. Cite sources as [n]. Be concise."
     : "You are a concise research agent. Answer clearly in a short paragraph.";
   const user = context ? `Question: ${query}\n\nSources:\n${context}` : query;
+
+  // Preferred: API-key proxy (no private key). Fall back to the broker SDK only if no API key.
+  if (ZG_API_KEY && ZG_ENDPOINT) return proxyAnswer(system, user);
 
   const broker = await getBroker();
   const providerAddress = await pickProvider(broker);

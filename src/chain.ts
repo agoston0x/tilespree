@@ -1,4 +1,5 @@
-// On-chain USDC payments on the 0G testnet — replaces Circle.
+// On-chain USDC escrow on the payment chain (default Arbitrum Sepolia, real Circle USDC).
+// Separate from the 0G chain (inference/storage). Replaces Circle.
 // Self-custody user wallets (passkey-derived). The backend OPERATOR wallet runs
 // escrow on the user's behalf after a one-time ERC-20 approve:
 //   pay:    user   -> escrow(operator)  via transferFrom
@@ -6,7 +7,7 @@
 //   refund: escrow -> user              remainder
 import { ethers } from "ethers";
 import {
-  ZG_RPC_URL, ZG_EXPLORER, ZG_CHAIN_ID, OPERATOR_PRIVATE_KEY, USDC_ADDRESS, AGENT_ADDRESS,
+  PAYMENT_RPC, PAYMENT_EXPLORER, PAYMENT_CHAIN_ID, OPERATOR_PRIVATE_KEY, USDC_ADDRESS, AGENT_ADDRESS,
 } from "./config.js";
 
 export const USDC_DECIMALS = 6;
@@ -17,7 +18,6 @@ export const USDC_ABI = [
   "function approve(address spender, uint256 amount) returns (bool)",
   "function transfer(address to, uint256 amount) returns (bool)",
   "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-  "function mint(address to, uint256 amount)",
 ];
 
 export function chainConfigured(): boolean {
@@ -26,7 +26,7 @@ export function chainConfigured(): boolean {
 
 let _provider: ethers.JsonRpcProvider | null = null;
 export function provider(): ethers.JsonRpcProvider {
-  if (!_provider) _provider = new ethers.JsonRpcProvider(ZG_RPC_URL, ZG_CHAIN_ID);
+  if (!_provider) _provider = new ethers.JsonRpcProvider(PAYMENT_RPC, PAYMENT_CHAIN_ID);
   return _provider;
 }
 
@@ -49,8 +49,8 @@ function usdc(signerOrProvider: ethers.Signer | ethers.Provider): ethers.Contrac
 export const toUnits = (amount: number): bigint => ethers.parseUnits(amount.toFixed(USDC_DECIMALS), USDC_DECIMALS);
 export const fromUnits = (units: bigint): number => Number(ethers.formatUnits(units, USDC_DECIMALS));
 
-export const EXPLORER_TX = (hash: string) => `${ZG_EXPLORER}/tx/${hash}`;
-export const EXPLORER_ADDR = (addr: string) => `${ZG_EXPLORER}/address/${addr}`;
+export const EXPLORER_TX = (hash: string) => `${PAYMENT_EXPLORER}/tx/${hash}`;
+export const EXPLORER_ADDR = (addr: string) => `${PAYMENT_EXPLORER}/address/${addr}`;
 
 export type TransferResult = { txHash: string; state: string; explorer: string };
 
@@ -91,7 +91,16 @@ export function refundToUser(userAddress: string, amount: number): Promise<Trans
   return send(usdc(operator()).transfer(userAddress, toUnits(amount)));
 }
 
-// faucet: mint test USDC to an address (open mint on MockUSDC).
-export function mintUsdc(toAddress: string, amount: number): Promise<TransferResult> {
-  return send(usdc(operator()).mint(toAddress, toUnits(amount)));
+// gas drip: send a little native gas (ETH on Arbitrum Sepolia) so a freshly-funded
+// user can submit their one-time approve. Real USDC itself comes from the Circle faucet.
+export async function dripGas(toAddress: string, amountEth: string): Promise<TransferResult> {
+  const tx = await operator().sendTransaction({ to: toAddress, value: ethers.parseEther(amountEth) });
+  const receipt = await tx.wait(1);
+  return { txHash: tx.hash, state: receipt?.status === 1 ? "CONFIRMED" : "FAILED", explorer: EXPLORER_TX(tx.hash) };
+}
+
+// native gas-token balance (ETH on the payment chain) for an address.
+export async function gasBalance(address: string): Promise<number> {
+  if (!address) return 0;
+  return Number(ethers.formatEther(await provider().getBalance(address)));
 }
