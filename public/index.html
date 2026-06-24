@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>TileSpree — private-inference research</title>
+<title>tile spree</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23f23a12'/%3E%3Ctext x='32' y='47' font-family='Arial Black,Arial,sans-serif' font-size='46' font-weight='900' fill='white' text-anchor='middle'%3ET%3C/text%3E%3C/svg%3E" />
 <style>
   :root{
@@ -48,8 +48,7 @@
   .hero-title{font-size:54px;font-weight:820;letter-spacing:-.04em;text-align:center;margin:18px 0 6px;
     background:linear-gradient(120deg,#f23a12,#ff7a3c 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
   @media(max-width:600px){.hero-title{font-size:40px}}
-  .hero-search{max-width:680px;margin:14px auto 14px}
-  .stackbar{text-align:center;color:var(--muted);font-size:12px;margin:0 auto 30px}.stackbar b{color:var(--accent);font-weight:700}
+  .hero-search{max-width:680px;margin:14px auto 30px}
   /* auth modal */
   .authwrap{position:fixed;inset:0;z-index:110;background:rgba(15,19,15,.62);backdrop-filter:blur(5px);
     display:none;align-items:center;justify-content:center;padding:24px}
@@ -68,20 +67,7 @@
   #q.phfade::placeholder{opacity:0}
   #go{padding:16px 22px;font-size:16px}
   /* past-search grid — full width, max 4/row */
-  .hist-head{margin:6px 0 14px;display:flex;align-items:center;justify-content:space-between;gap:12px}.hist-head h3{margin:0}
-  .sort{display:flex;gap:6px}
-  .sortbtn{background:#fff;color:var(--muted);border:1px solid var(--line);border-radius:9px;padding:6px 11px;font-size:12px;font-weight:600}
-  .sortbtn.on{background:rgba(242,58,18,.08);color:var(--accent);border-color:rgba(242,58,18,.25)}
-  .tile .likes{cursor:pointer;border:0}.tile .likes.liked{background:var(--accent)}
-  /* pricing modal */
-  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px;text-align:left}
-  .price-opt{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
-  .price-opt:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,.07)}
-  .price-opt h3{margin:0 0 4px;font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink)}
-  .price-opt .cost{font-size:20px;font-weight:800;color:var(--accent);margin:4px 0}
-  .price-opt .desc{font-size:12px;color:var(--muted);line-height:1.45}
-  .price-opt .tag0g{display:inline-block;font-size:10px;font-weight:700;color:#1f9d63;background:rgba(31,157,99,.1);border-radius:6px;padding:2px 6px;margin-top:6px}
-  @media(max-width:520px){.price-grid{grid-template-columns:1fr}}
+  .hist-head{margin:6px 0 14px}.hist-head h3{margin:0}
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}            /* mobile-first: 2/row */
   @media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr);gap:14px}} /* desktop: 4/row */
   .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:16px;overflow:hidden;
@@ -94,7 +80,6 @@
   .tile .q{position:relative;z-index:2;color:#fff;padding:12px 13px 2px;font-size:14px;font-weight:600;line-height:1.3;
     display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
   .tile .meta{position:relative;z-index:2;color:rgba(255,255,255,.82);font-size:11px;padding:5px 13px 13px}
-  .tile .likes{position:absolute;top:9px;right:9px;z-index:3;background:rgba(0,0,0,.42);color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:999px;backdrop-filter:blur(4px)}
   /* cards / inputs */
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
     padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
@@ -118,9 +103,6 @@
   .step .detail{color:var(--muted);font-size:13px;margin-top:2px}
   .step .art{font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all}
   /* findings */
-  .privbadge{display:inline-block;font-size:12px;font-weight:600;border-radius:8px;padding:6px 11px;margin-bottom:12px}
-  .privbadge.priv{color:#1f9d63;background:rgba(31,157,99,.1)}
-  .privbadge.pub{color:var(--muted);background:#f0eee9}
   .answer{white-space:pre-wrap;font-size:15px;line-height:1.65}
   h3{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:18px 0 8px}
   .srcs{list-style:none;padding:0;margin:0}
@@ -130,10 +112,21 @@
   .findings.clamped{max-height:130px;overflow:hidden}
   .findings.clamped::after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,#fff)}
   .showmore{margin-top:12px}
-  /* result layout: deck above findings when opened from a tile */
-  #result{display:flex;flex-direction:column}
-  #result #backBtn{order:0}#result #flow{order:1}#result #answerCard{order:2}#result #deckSection{order:3}
-  #result.deck-top #deckSection{order:1}#result.deck-top #answerCard{order:2}
+  /* result = centered overlay modal over the still-visible tiles */
+  #result{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-start;justify-content:center;
+    padding:5vh 4vw;overflow-y:auto;background:rgba(15,19,15,.55);backdrop-filter:blur(3px)}
+  .result-modal{position:relative;background:var(--bg);border-radius:20px;width:min(900px,100%);margin:auto;
+    padding:20px 20px 24px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .rclose{position:absolute;top:14px;right:14px;z-index:7}
+  .deckwrap{cursor:zoom-in}.deckwrap.maximized{cursor:default}
+  /* pricing modal options */
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px;text-align:left}
+  .price-opt{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+  .price-opt:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,.07)}
+  .price-opt h3{margin:0 0 4px;font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink)}
+  .price-opt .cost{font-size:20px;font-weight:800;color:var(--accent);margin:4px 0}
+  .price-opt .desc{font-size:12px;color:var(--muted);line-height:1.45}
+  @media(max-width:520px){.price-grid{grid-template-columns:1fr}}
   /* deck section */
   #deckSection{margin-bottom:16px}
   .deckph{height:440px;border:1.5px dashed #d8d2c8;border-radius:18px;display:grid;place-items:center;text-align:center;
@@ -180,7 +173,6 @@
 <div class="topbar">
   <div class="brand">
     <div class="logo" title="tile spree"><span class="l1"><b>t</b><b>i</b><b>l</b><b>e</b></span><span class="l2"><b>s</b><b>p</b><b>r</b><b>e</b><b>e</b></span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
-    <span class="tag">0G Cup</span>
   </div>
   <div class="spacer"></div>
   <div id="guestBar" class="topgroup">
@@ -197,60 +189,54 @@
 <div class="wrap">
   <!-- LANDER -->
   <div id="lander">
-    <h1 class="hero-title">Research, paid by the query.</h1>
-    <p class="sub narrow">Browse the wall of past research, or run your own — escrowed in USDC on 0G, answered by AI.
-      Go <b>public</b> (cheap, shared) or <b>private</b> on <b>0G Compute</b>: your reasoning runs in a TEE and the response is cryptographically verifiable.</p>
     <div class="hero-search">
       <div class="row">
         <input id="q" placeholder="Research anything…" autocomplete="off" />
         <button id="go">Run</button>
       </div>
     </div>
-    <div class="stackbar">On-chain USDC escrow · Tavily research · <b>0G Compute</b> private TEE · passkey wallet</div>
     <div class="hidden" id="history">
-      <div class="hist-head">
-        <h3>Explore research</h3>
-        <div class="sort"><button class="sortbtn on" data-sort="recent">Most recent</button><button class="sortbtn" data-sort="liked">Most liked</button></div>
-      </div>
+      <div class="hist-head"><h3>Explore research</h3></div>
       <div class="grid" id="grid"></div>
     </div>
   </div>
 
-  <!-- RESULT -->
+  <!-- RESULT — centered overlay modal over the tiles -->
   <div id="result" class="hidden">
-    <button class="ghost back" id="backBtn">‹ Back to research</button>
+    <div class="result-modal">
+      <button class="iconbtn rclose" id="resultClose" title="Close">✕</button>
 
-    <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
+      <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
 
-    <div class="card narrow hidden" id="answerCard">
-      <div id="privBadge" class="privbadge hidden"></div>
-      <div class="findings" id="findings">
-        <div class="answer" id="answer"></div>
-        <h3 id="srcHead" class="hidden">Sources</h3>
-        <ul class="srcs" id="sources"></ul>
-      </div>
-      <button class="ghost showmore hidden" id="showMore">Show more</button>
-    </div>
-
-    <div id="deckSection" class="hidden">
-      <div class="deckph" id="deckph">
-        <div class="cta">
-          <b>Presentation deck</b>
-          <span>Turn these findings into a slideshow with images &amp; source map.</span>
-          <button id="genDeck">✨ Generate deck</button>
-        </div>
-      </div>
-      <div class="deckwrap hidden" id="deckwrap">
-        <button class="iconbtn mx" id="mxBtn" title="Maximize">⛶</button>
-        <button class="iconbtn dclose" id="closeDeck" title="Close">✕</button>
-        <div class="deck">
-          <div class="slides" id="slides"></div>
-          <div class="nav">
-            <button class="ghost" id="prev">‹ Prev</button>
-            <div class="dots" id="dots"></div>
-            <button class="ghost" id="next">Next ›</button>
+      <div id="deckSection" class="hidden">
+        <div class="deckph" id="deckph">
+          <div class="cta">
+            <b>Presentation deck</b>
+            <span>Turn these findings into a slideshow with images &amp; source map.</span>
+            <button id="genDeck">✨ Generate deck</button>
           </div>
         </div>
+        <div class="deckwrap hidden" id="deckwrap">
+          <button class="iconbtn mx" id="mxBtn" title="Expand">⛶</button>
+          <button class="iconbtn dclose" id="closeDeck" title="Close">✕</button>
+          <div class="deck">
+            <div class="slides" id="slides"></div>
+            <div class="nav">
+              <button class="ghost" id="prev">‹ Prev</button>
+              <div class="dots" id="dots"></div>
+              <button class="ghost" id="next">Next ›</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card narrow hidden" id="answerCard">
+        <div class="findings" id="findings">
+          <div class="answer" id="answer"></div>
+          <h3 id="srcHead" class="hidden">Sources</h3>
+          <ul class="srcs" id="sources"></ul>
+        </div>
+        <button class="ghost showmore hidden" id="showMore">Show more</button>
       </div>
     </div>
   </div>
@@ -261,8 +247,8 @@
 
 <div class="authwrap" id="authModal">
   <div class="authcard">
-    <h2>Scan to sign in</h2>
-    <p>Scan with your phone &amp; continue with a passkey. First 3 searches free.</p>
+    <h2 id="authTitle">Scan to sign in</h2>
+    <p id="authIntro">Scan with your phone &amp; continue with a passkey. First 3 searches free.</p>
     <div class="qrbox" id="qrBox"></div>
     <button class="skip" id="authClose">Maybe later</button>
     <div class="st" id="authSt"></div>
@@ -277,13 +263,12 @@
       <div class="price-opt" data-mode="public">
         <h3>🌐 Public research</h3>
         <div class="cost" id="pubCost">0.10 USDC</div>
-        <div class="desc">Tavily + TokenFactory inference. Saved as a public tile others can browse.</div>
+        <div class="desc">Tavily + TokenFactory. Saved as a public tile others can browse.</div>
       </div>
       <div class="price-opt" data-mode="private">
         <h3>🔒 Private research</h3>
         <div class="cost" id="privCost">0.50 USDC</div>
-        <div class="desc">Reasoning runs privately in a TEE, cryptographically verifiable. Never published.</div>
-        <span class="tag0g">0G Private Compute</span>
+        <div class="desc">Reasoning runs privately in a 0G TEE, verifiable. Never published.</div>
       </div>
     </div>
     <button class="skip" id="priceClose">Cancel</button>
@@ -291,30 +276,30 @@
   </div>
 </div>
 
+<script src="/ethers.js"></script>
+<script src="/passkey-wallet.js"></script>
+
 <script>
 const $ = (s) => document.querySelector(s);
 const go = $("#go"), tl = $("#timeline");
 let LAST = null, deckData = null;
-const SAPI = "/api";
 window.__lastErr = "";
 window.addEventListener("error", e => { window.__lastErr = (e.message||"") + (e.filename ? " @ "+e.filename.split("/").pop() : ""); });
 
-// --- account / chain state ---
-const DEMO_ADDR = "0x00000000000000000000000000000000dEAdBEEf"; // /?demo signs in without a phone
+// Open on a phone? Then sign-in derives the wallet inline (no QR).
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// Account state (self-custody wallet address). signedIn = has an address.
 let ADDR = localStorage.getItem("tilespree.address") || "";
-let ACCT = { freeLeft: 3, freeUsed: 0, usdc: 0, allowance: 0, likes: [] };
-let CFG = null, SORT = "recent";
-if (/[?&#]demo\b/.test(location.href)) { ADDR = DEMO_ADDR; localStorage.setItem("tilespree.address", ADDR); }
+let ACCT = { freeLeft: 3, usdc: 0, allowance: 0 };
+let CFG = null;
+const signedIn = () => !!ADDR;
 
 const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
-const shortAddr = (a) => a ? a.slice(0,6)+"…"+a.slice(-4) : "";
 const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
 const setBal = (b) => {
   if (b.locked != null) $("#escrowBal").textContent = fmt(b.locked);
   if (b.remaining != null) $("#walletBal").textContent = fmt(b.remaining);
 };
-const signedIn = () => !!ADDR;
-
 async function fetchChainConfig(){
   try { CFG = await (await fetch("/api/chain/config")).json();
     if(CFG){ $("#pubCost").textContent = fmt(CFG.feePublic); $("#privCost").textContent = fmt(CFG.feePrivate); }
@@ -324,14 +309,13 @@ async function refreshAccount(){
   if(!signedIn()) return;
   try { ACCT = await (await fetch("/api/account/"+ADDR)).json(); } catch {}
   updateAuthUI();
-  renderHistory(); // re-render to reflect liked state
 }
-// Top-bar: guest (free badge + Sign in) vs signed-in (free left, wallet USDC, escrow).
+// Top-bar: guest (free badge + Sign in) vs signed-in (free left, wallet).
 function updateAuthUI(){
   if (signedIn()){
     $("#guestBar").classList.add("hidden"); $("#userBar").classList.remove("hidden");
-    $("#freeLeft").textContent = ACCT.freeLeft;
-    $("#walletBal").textContent = fmt(ACCT.usdc);
+    $("#freeLeft").textContent = ACCT.freeLeft != null ? ACCT.freeLeft : "—";
+    $("#walletBal").textContent = fmt(ACCT.usdc || 0);
   } else {
     $("#userBar").classList.add("hidden"); $("#guestBar").classList.remove("hidden");
     $("#freeBadge").textContent = "3 free searches";
@@ -339,20 +323,21 @@ function updateAuthUI(){
 }
 const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
-const likeCount = (s)=>{let h=0;for(const c of String(s))h=(h*31+c.charCodeAt(0))>>>0;return 23+h%820;};
 const ago = (ts)=>{const s=(Date.now()-ts)/1000;
   return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago";};
 
 // ---- Views ----
-function setView(v, sy){
-  $("#lander").classList.toggle("hidden", v!=="lander");
+// The result is an overlay modal layered over the lander — keep the tiles rendered behind it.
+function setView(v){
   $("#result").classList.toggle("hidden", v!=="result");
-  if (v==="lander") { restoreDeck(); renderHistory(); window.scrollTo({ top: sy ?? 0, behavior: sy!=null?"auto":"smooth" }); }
+  if (v==="lander") { restoreDeck(); renderHistory(); }
 }
-$("#backBtn").onclick = () => setView("lander");
+function closeResult(){ restoreDeck(); setView("lander"); }
+$("#resultClose").onclick = closeResult;
+$("#result").addEventListener("click", e=>{ if(e.target.id==="result") closeResult(); }); // click backdrop
 // Logo → home (lander) from anywhere; close any overlays.
 $(".brand").addEventListener("click", () => {
-  closeAuth(); restoreDeck(); $("#lb").classList.remove("on"); setView("lander");
+  closeAuth(); closePricing(); restoreDeck(); $("#lb").classList.remove("on"); setView("lander");
 });
 
 // (top-bar state set by updateAuthUI() on load — see bottom of script)
@@ -361,10 +346,6 @@ $(".brand").addEventListener("click", () => {
 function showResult(d, opts){
   opts = opts || {};
   LAST = d; deckData = d;
-  const pb=$("#privBadge");
-  if(d.mode==="private"){ pb.className="privbadge priv"; pb.textContent = d.verified ? "🔒 Private · 0G TEE — response verified ✓" : "🔒 Private · ran in 0G TEE (not published)"; }
-  else if(d.mode==="public"){ pb.className="privbadge pub"; pb.textContent = "🌐 Public research"; }
-  else { pb.className="privbadge hidden"; }
   $("#answer").innerHTML = citeHtml(d.result || "", d.sources || []);
   const ul = $("#sources"); ul.innerHTML = "";
   (d.sources||[]).forEach((s,i)=>{
@@ -374,18 +355,17 @@ function showResult(d, opts){
   });
   const hasSrc=(d.sources||[]).length;
   $("#srcHead").classList.toggle("hidden", !hasSrc);
-  $("#flow").classList.toggle("hidden", !opts.live); // timeline only for live runs
+  $("#flow").classList.add("hidden");           // finished view: no timeline (same as tile-open)
   $("#answerCard").classList.remove("hidden");
   // clamp findings (default when opened from a tile)
   const clamp = !!opts.clamp;
   $("#findings").classList.toggle("clamped", clamp);
   $("#showMore").classList.toggle("hidden", !clamp);
   $("#showMore").textContent = "Show more";
-  // deck section: placeholder by default; auto-build inline when opening a tile
+  // deck preview, auto-built so a finished run looks identical to opening a tile
   $("#deckSection").classList.toggle("hidden", !hasSrc);
-  $("#result").classList.toggle("deck-top", !!opts.autoDeck); // slideshow above findings on tile-open
   resetDeckToPlaceholder();
-  if (opts.autoDeck && hasSrc) { buildDeck(d); }
+  if (hasSrc) { buildDeck(d); }
   setView("result");
 }
 $("#showMore").onclick = () => {
@@ -397,43 +377,26 @@ $("#showMore").onclick = () => {
 // ---- Past-search tiles (server / SQLite) ----
 async function renderHistory(){
   let arr=[];
-  try { arr = await (await fetch(SAPI+"/searches?sort="+SORT)).json(); } catch {}
+  try { arr = await (await fetch("/api/searches")).json(); } catch {}
   $("#history").classList.toggle("hidden", !(arr&&arr.length));
-  const liked = new Set(ACCT.likes||[]);
   $("#grid").innerHTML = (arr||[]).map((it)=>{
     const img = it.images && it.images[0] && it.images[0].url;
     const thumb = img?`<div class="thumb" style="background-image:url('${img}')"></div>`:`<div class="thumb grad"></div>`;
     const spent = it.economics&&it.economics.spent?fmt(it.economics.spent):"free";
     return `<div class="tile" data-id="${it.id}">${thumb}<div class="veil"></div>
-      <div class="likes${liked.has(it.id)?" liked":""}" data-like="${it.id}">❤ ${it.likes||0}</div>
       <div class="q">${esc(it.query)}</div><div class="meta">${ago(it.ts)} · ${spent}</div></div>`;
   }).join("");
 }
-async function toggleLike(id, el){
-  if(!signedIn()){ openAuth(); return; }
-  try {
-    const r = await (await fetch(SAPI+"/searches/"+id+"/like",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({address:ADDR})})).json();
-    if(r && r.likes!=null){ el.classList.toggle("liked",r.liked); el.innerHTML="❤ "+r.likes;
-      if(r.liked) ACCT.likes=[...(ACCT.likes||[]),id]; else ACCT.likes=(ACCT.likes||[]).filter(x=>x!==id); }
-  } catch {}
-}
-let cameFromTile=false, landerScrollY=0;
 async function openTile(id){
-  if(!signedIn()){ openAuth(); return; }   // viewing tile detail requires sign-in
-  try { const it=await (await fetch(SAPI+"/searches/"+id)).json();
-    if(it&&it.result) showResult(it,{clamp:true,autoDeck:true}); } catch {}
+  try { const it=await (await fetch("/api/searches/"+id)).json();
+    if(it&&it.result) showResult(it,{clamp:true}); } catch {}
 }
+// Browsing the grid is free; opening a tile's detail requires sign-in (spec #2).
 $("#grid").addEventListener("click",(e)=>{
-  const like=e.target.closest("[data-like]");
-  if(like){ e.stopPropagation(); toggleLike(like.dataset.like, like); return; }
   const t=e.target.closest(".tile"); if(!t)return;
-  landerScrollY=window.scrollY; cameFromTile=true;   // remember where we were
-  openTile(t.dataset.id);
-});
-// Rankings toggle (most recent / most liked).
-document.querySelectorAll(".sortbtn").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll(".sortbtn").forEach(x=>x.classList.remove("on"));
-  b.classList.add("on"); SORT=b.dataset.sort; renderHistory();
+  const id=t.dataset.id;
+  if(!signedIn()){ pendingAction=()=>openTile(id); openAuth(); return; }
+  openTile(id);
 });
 
 // ---- Cycling placeholder ----
@@ -447,33 +410,54 @@ setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
   setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
 },2800);
 
-// ---- Auth gate (passkey via QR) ----
+// ---- Auth gate (passkey) ----
 let pendingAction = null;
 const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
 let pollTimer=null;
-function openAuth(){ authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on"); startQrLogin(); }
+function openAuth(){
+  authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on");
+  if(IS_MOBILE) startInlinePasskey(); else startQrLogin();
+}
 function closeAuth(){ $("#authModal").classList.remove("on"); if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
 $("#authClose").onclick = closeAuth;
 $("#signInBtn").onclick = openAuth;
 $("#authModal").addEventListener("click",e=>{ if(e.target.id==="authModal")closeAuth(); });
 async function finishAuth(address){
   ADDR = address; localStorage.setItem("tilespree.address", address);
-  authSt("You're in ✓","ok");
-  await refreshAccount();
-  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 700);
+  authSt("You're in ✓","ok"); await refreshAccount();
+  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 600);
 }
-// Desktop shows a QR to the phone; phone derives the passkey wallet and claims the session.
+// Desktop: show a QR; the phone generates the on-device key + WebAuthn passkey and claims the session.
 async function startQrLogin(){
   try{
+    $("#authTitle").textContent = "Scan to sign in";
+    $("#authIntro").textContent = "Scan with your phone — it creates a passkey wallet on your device. First 3 searches free.";
+    $("#qrBox").classList.remove("hidden");
     const s = await (await fetch("/api/session/new",{method:"POST"})).json();
     const url = s.mobileUrl.startsWith("http") ? s.mobileUrl : (location.origin + s.mobileUrl);
     $("#qrBox").innerHTML = `<img alt="Scan to sign in" src="https://api.qrserver.com/v1/create-qr-code/?size=216x216&margin=6&data=${encodeURIComponent(url)}">`;
-    authSt(s.hasBase ? "Scan with your phone to continue" : `Set PUBLIC_BASE_URL (tunnel) so a phone can reach this · <a href="${url}" target="_blank">open on this device</a>`);
+    authSt(s.hasBase ? "Scan with your phone to continue" : `Set PUBLIC_BASE_URL so a phone can reach this · <a href="${url}" target="_blank">open here</a>`);
     pollTimer = setInterval(async()=>{
       try{ const r = await (await fetch("/api/session/"+s.sid)).json();
         if(r.status==="authed" && r.address){ clearInterval(pollTimer); pollTimer=null; finishAuth(r.address); } }catch{}
     }, 1600);
   }catch(e){ authSt("Error: "+e.message,"err"); }
+}
+// Mobile: no QR — generate the key + WebAuthn passkey on THIS device, then claim.
+async function startInlinePasskey(){
+  try{
+    $("#authTitle").textContent = "Create your passkey wallet";
+    $("#authIntro").textContent = "Authenticate with your device passkey — your wallet key is generated and stays on this phone.";
+    $("#qrBox").classList.add("hidden");
+    if(!window.PasskeyWallet) throw new Error("wallet module not loaded");
+    const s = await (await fetch("/api/session/new",{method:"POST"})).json();
+    authSt("Complete the passkey prompt…");
+    const { address, sig, message } = await window.PasskeyWallet.connect(s.sid);
+    const r = await (await fetch(`/api/session/${s.sid}/claim`,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({ address, sig, message })})).json();
+    if(r.error) throw new Error(r.error);
+    finishAuth(r.address || address);
+  }catch(e){ authSt("Failed: "+(e.message||e),"err"); }
 }
 
 // ---- Pricing modal (after free searches used) ----
@@ -485,28 +469,27 @@ $("#priceClose").onclick = closePricing;
 $("#priceModal").addEventListener("click",e=>{ if(e.target.id==="priceModal")closePricing(); });
 document.querySelectorAll(".price-opt").forEach(opt=>opt.onclick=()=>{
   const mode=opt.dataset.mode, q=pricePending;
-  const fee = mode==="private" ? (CFG?CFG.feePrivate:0.5) : (CFG?CFG.feePublic:0.1);
-  // Need funds + spend authorization for paid runs.
   if(CFG && CFG.configured){
-    if(ACCT.usdc < (CFG.price||1)){ priceSt("Not enough USDC — open your phone to fund your wallet.","err"); return; }
-    if(ACCT.allowance < (CFG.price||1)){ priceSt("Authorize spending on your phone first (Fund & authorize).","err"); return; }
-  }
+    if((ACCT.usdc||0) < (CFG.price||1)){ priceSt("Not enough USDC — open the app on your phone to fund your wallet.","err"); return; }
+    if((ACCT.allowance||0) < (CFG.price||1)){ priceSt("Authorize spending on your phone first (Fund & authorize).","err"); return; }
+  } else { priceSt("Payments aren't set up on this server yet.","err"); return; }
   closePricing(); doRun(q, mode, true);
 });
 
 // ---- Run a query ----
-// Decide: sign-in gate -> free run (public) -> else pricing modal.
+// Sign-in gate → free run (public) → else pricing modal.
 function requestRun(q){
   if(!signedIn()){ pendingAction=()=>requestRun(q); openAuth(); return; }
-  if(ACCT.freeLeft>0){ doRun(q,"public",false); }
+  if((ACCT.freeLeft||0) > 0){ doRun(q,"public",false); }
   else { openPricing(q); }
 }
 function doRun(q, mode, paid){
   go.disabled=true; tl.innerHTML="";
-  setView("result");
+  // open the modal in its "running" state: live timeline, deck/answer hidden until done
   $("#flow").classList.remove("hidden");
   $("#answerCard").classList.add("hidden");
   $("#deckSection").classList.add("hidden");
+  setView("result");
 
   const es=new EventSource("/api/run?q="+encodeURIComponent(q)+"&address="+ADDR+"&mode="+mode);
   es.addEventListener("balance",(e)=>setBal(JSON.parse(e.data)));
@@ -523,18 +506,17 @@ function doRun(q, mode, paid){
     const d=JSON.parse(e.data);
     if(d.freeLeft!=null) ACCT.freeLeft=d.freeLeft;
     refreshAccount();
-    if(d.result){
-      d.private = d.mode==="private";
-      showResult(d,{clamp:false,autoDeck:false,live:true});
-      setTimeout(()=>$("#deckSection").scrollIntoView({behavior:"smooth",block:"center"}),150);
-    }
+    // finished modal looks identical to opening a tile (deck preview + data, no timeline)
+    if(d.result){ showResult(d,{clamp:false}); }
     es.close(); go.disabled=false;
   });
   es.addEventListener("fatal",(e)=>{
     const err=JSON.parse(e.data);
-    if(err.needApprove){ $("#answer").textContent="Authorize spending on your phone first (scan QR → Fund & authorize), then try again."; }
-    else { $("#answer").textContent="Error: "+(err.error||"unknown"); }
-    $("#answerCard").classList.remove("hidden"); $("#srcHead").classList.add("hidden");
+    $("#flow").classList.add("hidden"); $("#deckSection").classList.add("hidden");
+    $("#answer").textContent = err.needApprove
+      ? "Authorize spending on your phone first (Fund & authorize), then try again."
+      : "Error: "+(err.error||"unknown");
+    $("#srcHead").classList.add("hidden"); $("#answerCard").classList.remove("hidden");
     es.close(); go.disabled=false;
   });
   es.onerror=()=>{ es.close(); go.disabled=false; };
@@ -600,14 +582,17 @@ $("#next").onclick=()=>{ if(deckGated())return; if(idx<count-1){idx++;render();}
 
 function maximizeDeck(){ $("#deckwrap").classList.add("maximized"); $("#backdrop").classList.add("show"); }
 function restoreDeck(){ $("#deckwrap").classList.remove("maximized"); $("#backdrop").classList.remove("show"); }
-// Close expanded deck → if opened from a tile, return to the lander where we were.
-function dismissDeck(){
-  restoreDeck();
-  if(cameFromTile){ cameFromTile=false; setView("lander", landerScrollY); }
-}
+// Expanded deck X / backdrop → collapse back to the preview inside the modal (stay in the modal).
+function dismissDeck(){ restoreDeck(); }
 $("#mxBtn").onclick=maximizeDeck;
 $("#closeDeck").onclick=dismissDeck;
 $("#backdrop").onclick=dismissDeck;
+// Click the deck preview to expand to full size (ignore clicks on nav buttons / links / images).
+$("#deckwrap").addEventListener("click",(e)=>{
+  if($("#deckwrap").classList.contains("maximized"))return;
+  if(e.target.closest("button, a, img"))return;
+  maximizeDeck();
+});
 
 // ---- Lightbox ----
 document.addEventListener("click",(e)=>{ if(e.target.matches("img.zoom")){ $("#lbImg").src=e.target.src; $("#lb").classList.add("on"); } });

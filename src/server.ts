@@ -135,11 +135,12 @@ app.get("/api/run", async (req, res) => {
     const paid = freeLeft <= 0;
     const mode: "public" | "private" = paid ? reqMode : "public";
 
-    if (paid && chainConfigured()) {
-      // Pre-flight: enough balance + allowance to cover the escrow deposit?
+    if (paid) {
+      // Free searches used up → a paid run REQUIRES a configured + funded + approved wallet.
+      if (!chainConfigured()) { send("fatal", { error: "Free searches used up and payments aren't set up on this server." }); return res.end(); }
       const [bal, allow] = await Promise.all([usdcBalance(address), allowanceOf(address)]);
-      if (bal < PRICE) { send("fatal", { error: `insufficient USDC (have ${bal}, need ${PRICE}) — use the faucet` }); return res.end(); }
-      if (allow < PRICE) { send("fatal", { error: "approve the app to spend your USDC first", needApprove: true }); return res.end(); }
+      if (bal < PRICE) { send("fatal", { error: `Insufficient USDC (have ${bal}, need ${PRICE}) — fund your wallet on your phone.`, needFund: true }); return res.end(); }
+      if (allow < PRICE) { send("fatal", { error: "Authorize the app to spend your USDC first.", needApprove: true }); return res.end(); }
     }
 
     const r = await runFlow(query, { userAddress: address, paid, mode },

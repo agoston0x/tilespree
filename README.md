@@ -6,8 +6,6 @@ escrowed, a fee settled, the rest refunded. Choose **public** research (cheap, s
 tile) or **private** research on **0G Compute**: your reasoning runs inside a **TEE** and the
 response is **cryptographically verifiable**, and the result is never published.
 
-Built for the **0G Cup**.
-
 ## What's built
 - **Lander**: browse past public-research tiles freely (2/row mobile, 4/row desktop), sorted by
   most-recent or most-liked.
