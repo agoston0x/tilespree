@@ -15,7 +15,7 @@ export type SearchRecord = {
   visibility: Visibility; owner: string | null; likes: number; ts: number;
 };
 
-export type Account = { address: string; freeUsed: number; created: number };
+export type Account = { address: string; freeUsed: number; searches: number; created: number };
 
 const DIR = path.resolve("data");
 fs.mkdirSync(DIR, { recursive: true });
@@ -38,6 +38,7 @@ ensureColumn("searches", "likes", "INTEGER DEFAULT 0");
 db.exec(`CREATE TABLE IF NOT EXISTS accounts (
   address TEXT PRIMARY KEY, free_used INTEGER DEFAULT 0, created INTEGER
 )`);
+ensureColumn("accounts", "searches", "INTEGER DEFAULT 0");
 db.exec(`CREATE TABLE IF NOT EXISTS likes (
   address TEXT, search_id TEXT, ts INTEGER, PRIMARY KEY (address, search_id)
 )`);
@@ -122,11 +123,17 @@ export function getAccount(address: string): Account {
     db.prepare(`INSERT INTO accounts (address, free_used, created) VALUES (?,0,?)`).run(addr, Date.now());
     row = { address: addr, free_used: 0, created: Date.now() };
   }
-  return { address: row.address, freeUsed: row.free_used, created: row.created };
+  return { address: row.address, freeUsed: row.free_used, searches: row.searches || 0, created: row.created };
 }
 export function bumpFreeUsed(address: string): number {
   const addr = address.toLowerCase();
   getAccount(addr);
   db.prepare(`UPDATE accounts SET free_used = free_used + 1 WHERE address = ?`).run(addr);
   return (db.prepare(`SELECT free_used FROM accounts WHERE address = ?`).get(addr) as any).free_used;
+}
+export function bumpSearches(address: string): number {
+  const addr = address.toLowerCase();
+  getAccount(addr);
+  db.prepare(`UPDATE accounts SET searches = searches + 1 WHERE address = ?`).run(addr);
+  return (db.prepare(`SELECT searches FROM accounts WHERE address = ?`).get(addr) as any).searches;
 }

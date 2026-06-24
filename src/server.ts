@@ -9,7 +9,7 @@ import {
 import { verifyLogin } from "./wallet.js";
 import {
   saveSearch, listSearches, getSearch, clearSearches,
-  toggleLike, likedIds, getAccount, bumpFreeUsed, savePrivate,
+  toggleLike, likedIds, getAccount, bumpFreeUsed, bumpSearches, savePrivate,
 } from "./db.js";
 import { downloadJson } from "./zgstorage.js";
 import {
@@ -71,7 +71,7 @@ app.get("/api/account/:address", async (req, res) => {
       try { usdc = await usdcBalance(address); } catch {}
       try { allowance = await allowanceOf(address); } catch {}
     }
-    res.json({ address, freeUsed: acct.freeUsed, freeLeft, usdc, allowance, likes: likedIds(address) });
+    res.json({ address, freeUsed: acct.freeUsed, searches: acct.searches, freeLeft, usdc, allowance, likes: likedIds(address) });
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 
@@ -146,6 +146,7 @@ app.get("/api/run", async (req, res) => {
       (s) => send("step", s), (b) => send("balance", b));
 
     if (!paid) bumpFreeUsed(address);
+    bumpSearches(address);
 
     // Public results become public tiles; private results are stored on 0G Storage (hash only).
     let id = "";
