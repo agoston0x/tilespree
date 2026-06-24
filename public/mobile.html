@@ -25,7 +25,6 @@
   <div class="st" id="st"></div>
   <div class="addr" id="addr"></div>
   <div class="mode" id="mode"></div>
-  <div style="margin-top:18px"><a href="#" id="reset" style="color:#8b857c;font-size:12px">start over (re-test)</a></div>
 </div>
 <script src="/ethers.js"></script>
 <script src="/passkey-wallet.js"></script>
@@ -35,8 +34,6 @@ const st=(m,c="")=>$("#st").innerHTML=`<span class="${c}">${m}</span>`;
 const sid=new URLSearchParams(location.search).get("sid");
 if(!sid) st("Missing session — rescan the QR on your desktop.","err");
 if(!window.isSecureContext) st("Passkeys need HTTPS — open this page over https.","err");
-
-$("#reset").onclick=(e)=>{ e.preventDefault(); window.PasskeyWallet.reset(); location.reload(); };
 
 $("#go").onclick=async()=>{
   if(!sid)return; $("#go").disabled=true;

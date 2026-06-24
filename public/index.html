@@ -391,12 +391,17 @@ async function openTile(id){
   try { const it=await (await fetch("/api/searches/"+id)).json();
     if(it&&it.result) showResult(it,{clamp:true}); } catch {}
 }
-// Browsing the grid is free; opening a tile's detail requires sign-in (spec #2).
+// Guests may open up to 3 tiles to preview; the 4th (or like/run) prompts sign-in.
+const PREVIEW_LIMIT = 3;
+function tileGate(id){
+  if(signedIn()) return openTile(id);
+  const n = +(localStorage.getItem("tilespree.previews")||0);
+  if(n < PREVIEW_LIMIT){ localStorage.setItem("tilespree.previews", n+1); return openTile(id); }
+  pendingAction=()=>openTile(id); openAuth();
+}
 $("#grid").addEventListener("click",(e)=>{
   const t=e.target.closest(".tile"); if(!t)return;
-  const id=t.dataset.id;
-  if(!signedIn()){ pendingAction=()=>openTile(id); openAuth(); return; }
-  openTile(id);
+  tileGate(t.dataset.id);
 });
 
 // ---- Cycling placeholder ----
