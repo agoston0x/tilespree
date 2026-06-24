@@ -9,10 +9,11 @@ export const LLM_MODEL = process.env.LLM_MODEL || "gemini-2.5-flash";
 // INFERENCE_PROVIDER: "0g" (prefer 0G, fall back to Nebius on error) | "nebius" (force Nebius).
 // Defaults to "0g" whenever ZG_PRIVATE_KEY is present.
 export const ZG_PRIVATE_KEY = process.env.ZG_PRIVATE_KEY || "";
-// Preferred inference path: 0G provider API-key proxy (no private key, fund via dashboard).
-export const ZG_ENDPOINT = process.env.ZG_ENDPOINT || "";   // e.g. https://compute-network-6.integratenetwork.work
-export const ZG_API_KEY = process.env.ZG_API_KEY || "";     // app-sk-… from the 0G compute dashboard
-export const ZG_MODEL = process.env.ZG_MODEL || "qwen/qwen-2.5-7b-instruct";
+// Preferred inference path: 0G Compute Router (OpenAI-compatible, no private key — billed from the
+// 0G you deposit at pc.0g.ai). One base URL for all models; the sk-… key authorizes.
+export const ZG_ENDPOINT = process.env.ZG_ENDPOINT || "https://router-api.0g.ai/v1";
+export const ZG_API_KEY = process.env.ZG_API_KEY || "";     // sk-… Router key from pc.0g.ai
+export const ZG_MODEL = process.env.ZG_MODEL || "";         // pick from GET {ZG_ENDPOINT}/models
 export const ZG_RPC_URL = process.env.ZG_RPC_URL || "https://evmrpc-testnet.0g.ai";
 export const ZG_EXPLORER = process.env.ZG_EXPLORER || "https://chainscan-galileo.0g.ai";
 export const ZG_PROVIDER_ADDRESS = process.env.ZG_PROVIDER_ADDRESS || ""; // pin a provider; else first listed

@@ -35,7 +35,7 @@ export function zgConfigured(): boolean {
 // Preferred path: 0G provider API-key proxy (OpenAI-compatible). No private key, no in-code
 // ledger funding — the dashboard "main account" balance pays. Mirrors how beepm calls 0G.
 async function proxyAnswer(system: string, user: string): Promise<ZgAnswer> {
-  const client = new OpenAI({ baseURL: ZG_ENDPOINT.replace(/\/$/, "") + "/v1/proxy", apiKey: ZG_API_KEY });
+  const client = new OpenAI({ baseURL: ZG_ENDPOINT.replace(/\/$/, ""), apiKey: ZG_API_KEY });
   const res = await client.chat.completions.create({
     model: ZG_MODEL,
     messages: [{ role: "system", content: system }, { role: "user", content: user }],
