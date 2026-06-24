@@ -18,17 +18,30 @@
 </head>
 <body>
 <div class="card">
-  <h1>Unlink this device</h1>
-  <p class="sub">This forgets your passkey link and the wallet key generated on this device, so you can sign up fresh.</p>
-  <div class="warn">⚠️ The on-device wallet key will be flushed. If you didn't back it up, that wallet/address is gone. Your published research tiles stay on the server.</div>
-  <button id="go">Unlink &amp; flush wallet</button>
+  <h1 id="title">Unlink</h1>
+  <p class="sub" id="sub"></p>
+  <div class="warn" id="warn"></div>
+  <button id="go"></button>
   <div class="st" id="st"></div>
 </div>
 <script>
 const $=s=>document.querySelector(s);
+// This device holds the wallet only if the passkey/key live here (the phone).
+const hasWallet = !!(localStorage.getItem("tilespree.deviceKey") || localStorage.getItem("tilespree.credId"));
+if(hasWallet){
+  $("#title").textContent = "Flush this wallet";
+  $("#sub").textContent = "This phone holds your passkey + wallet key. Flushing lets you sign up fresh.";
+  $("#warn").innerHTML = "⚠️ The on-device wallet key will be permanently flushed. If you didn't back it up, that wallet/address is gone. Your published research tiles stay on the server.";
+  $("#go").textContent = "Flush wallet on this device";
+} else {
+  $("#title").textContent = "Sign out this browser";
+  $("#sub").textContent = "This browser only holds a session, not your wallet key.";
+  $("#warn").innerHTML = "ℹ️ This just signs out here. To fully flush your wallet, open <b>/reset on your phone</b> (where the key lives).";
+  $("#go").textContent = "Sign out this browser";
+}
 $("#go").onclick=()=>{
   ["tilespree.credId","tilespree.deviceKey","tilespree.address","tilespree.previews"].forEach(k=>localStorage.removeItem(k));
-  $("#st").innerHTML='<span class="ok">Unlinked ✓ — your wallet was flushed. <a href="/">Start fresh →</a></span>';
+  $("#st").innerHTML = '<span class="ok">'+(hasWallet?"Wallet flushed ✓":"Signed out ✓")+' — <a href="/">go to TileSpree →</a></span>';
   $("#go").disabled=true;
 };
 </script>
