@@ -140,7 +140,17 @@
   #backdrop.show{display:block}
   .iconbtn{position:absolute;top:12px;z-index:6;background:rgba(255,255,255,.92);color:var(--ink);
     border:1px solid var(--line);border-radius:9px;width:34px;height:34px;padding:0;font-size:15px;cursor:pointer}
-  .mx{right:12px}.dclose{right:12px;display:none}
+  .mx{right:12px;top:auto;bottom:12px}.dclose{right:12px;display:none}
+  /* tile modal: title, deck thumbnails, research images */
+  .modal-title{font-size:20px;font-weight:720;letter-spacing:-.02em;margin:2px 40px 14px 2px;line-height:1.25}
+  .thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 2px}
+  .thumb-mini{flex:0 0 auto;width:104px;height:66px;border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;background:#f0eee9}
+  .thumb-mini img{width:100%;height:100%;object-fit:cover}
+  .thumb-mini.grad{background:linear-gradient(135deg,#f23a12,#ff8a3d 60%,#ffb05a)}
+  .thumb-mini .n{position:absolute;left:5px;top:4px;font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);border-radius:5px;padding:1px 5px}
+  .res-head{margin:18px 0 10px}
+  .resimgs{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 6px}
+  .resimgs img{width:72px;height:54px;object-fit:cover;border-radius:7px;cursor:zoom-in;background:#f0eee9}
   .deckwrap.maximized .mx{display:none}.deckwrap.maximized .dclose{display:block}
   /* slideshow */
   .deck{position:relative;overflow:hidden;background:#fff;flex:1;display:flex;flex-direction:column}
@@ -205,6 +215,7 @@
   <div id="result" class="hidden">
     <div class="result-modal">
       <button class="iconbtn rclose" id="resultClose" title="Close">✕</button>
+      <h2 class="modal-title" id="modalTitle"></h2>
 
       <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
 
@@ -217,7 +228,6 @@
           </div>
         </div>
         <div class="deckwrap hidden" id="deckwrap">
-          <button class="iconbtn mx" id="mxBtn" title="Expand">⛶</button>
           <button class="iconbtn dclose" id="closeDeck" title="Close">✕</button>
           <div class="deck">
             <div class="slides" id="slides"></div>
@@ -227,16 +237,21 @@
               <button class="ghost" id="next">Next ›</button>
             </div>
           </div>
+          <button class="iconbtn mx" id="mxBtn" title="Expand">⛶</button>
         </div>
+        <div class="thumbs" id="thumbs"></div>
       </div>
 
       <div class="card narrow hidden" id="answerCard">
-        <div class="findings" id="findings">
+        <h3 class="res-head">Research results</h3>
+        <div class="findings clamped" id="findings">
           <div class="answer" id="answer"></div>
+          <h3 id="imgHead" class="hidden">Images</h3>
+          <div class="resimgs" id="resImages"></div>
           <h3 id="srcHead" class="hidden">Sources</h3>
           <ul class="srcs" id="sources"></ul>
         </div>
-        <button class="ghost showmore hidden" id="showMore">Show more</button>
+        <button class="ghost showmore" id="showMore">Show more</button>
       </div>
     </div>
   </div>
@@ -250,6 +265,7 @@
     <h2 id="authTitle">Scan to sign in</h2>
     <p id="authIntro">Scan with your phone &amp; continue with a passkey. First 3 searches free.</p>
     <div class="qrbox" id="qrBox"></div>
+    <button class="big hidden" id="authGo">🔑 Continue with passkey</button>
     <button class="skip" id="authClose">Maybe later</button>
     <div class="st" id="authSt"></div>
   </div>
@@ -346,6 +362,7 @@ $(".brand").addEventListener("click", () => {
 function showResult(d, opts){
   opts = opts || {};
   LAST = d; deckData = d;
+  $("#modalTitle").textContent = d.query || "";
   $("#answer").innerHTML = citeHtml(d.result || "", d.sources || []);
   const ul = $("#sources"); ul.innerHTML = "";
   (d.sources||[]).forEach((s,i)=>{
@@ -353,14 +370,19 @@ function showResult(d, opts){
     li.innerHTML=`<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><span class="u">${esc(s.url)}</span>`;
     ul.appendChild(li);
   });
+  // Research results: all Tavily images as thumbnails.
+  const ri = $("#resImages"); ri.innerHTML = "";
+  (d.images||[]).forEach((im)=>{ if(!im||!im.url)return;
+    const img=document.createElement("img"); img.className="zoom"; img.src=im.url; img.alt=im.description||"";
+    img.onerror=()=>img.remove(); ri.appendChild(img); });
+  $("#imgHead").classList.toggle("hidden", !(d.images&&d.images.length));
   const hasSrc=(d.sources||[]).length;
   $("#srcHead").classList.toggle("hidden", !hasSrc);
   $("#flow").classList.add("hidden");           // finished view: no timeline (same as tile-open)
   $("#answerCard").classList.remove("hidden");
-  // clamp findings (default when opened from a tile)
-  const clamp = !!opts.clamp;
-  $("#findings").classList.toggle("clamped", clamp);
-  $("#showMore").classList.toggle("hidden", !clamp);
+  // research results collapsed by default; expand-down to browse
+  $("#findings").classList.add("clamped");
+  $("#showMore").classList.remove("hidden");
   $("#showMore").textContent = "Show more";
   // deck preview, auto-built so a finished run looks identical to opening a tile
   $("#deckSection").classList.toggle("hidden", !hasSrc);
@@ -369,7 +391,6 @@ function showResult(d, opts){
   setView("result");
 }
 $("#showMore").onclick = () => {
-  if (!signedIn()) { openAuth(); return; }   // expanding full findings requires sign-in
   const c = $("#findings").classList.toggle("clamped");
   $("#showMore").textContent = c ? "Show more" : "Show less";
 };
@@ -421,8 +442,18 @@ const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
 let pollTimer=null;
 function openAuth(){
   authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on");
-  if(IS_MOBILE) startInlinePasskey(); else startQrLogin();
+  if(IS_MOBILE){
+    // Show a CTA; the passkey prompt only fires on tap (also required: WebAuthn needs a gesture).
+    $("#authTitle").textContent = "Sign in to TileSpree";
+    $("#authIntro").textContent = "Create a passkey wallet on this device — your key stays on your phone.";
+    $("#qrBox").classList.add("hidden");
+    $("#authGo").classList.remove("hidden"); $("#authGo").disabled = false;
+  } else {
+    $("#authGo").classList.add("hidden");
+    startQrLogin();
+  }
 }
+$("#authGo").onclick = () => { $("#authGo").disabled = true; startInlinePasskey(); };
 function closeAuth(){ $("#authModal").classList.remove("on"); if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
 $("#authClose").onclick = closeAuth;
 $("#signInBtn").onclick = openAuth;
@@ -462,7 +493,7 @@ async function startInlinePasskey(){
       body:JSON.stringify({ address, sig, message })})).json();
     if(r.error) throw new Error(r.error);
     finishAuth(r.address || address);
-  }catch(e){ authSt("Failed: "+(e.message||e),"err"); }
+  }catch(e){ authSt("Failed: "+(e.message||e),"err"); $("#authGo").disabled=false; }
 }
 
 // ---- Pricing modal (after free searches used) ----
@@ -550,7 +581,9 @@ function buildDeck(d){
   const sources=d.sources||[], images=(d.images||[]).map(i=>i.url);
   const pts=toPoints(d.result||"");
   const slides=[];
-  slides.push(`<div class="slide"><div class="kicker">Research Findings</div>
+  slides.push(`<div class="slide">
+    ${images[0]?`<img class="hero zoom" src="${images[0]}" onerror="this.style.display='none'">`:""}
+    <div class="kicker">Research Findings</div>
     <h2>${esc(d.query)}</h2><p class="lead">Key takeaways</p>
     <ul class="pts ${pts.length>3?"twocol":""}">${pts.map(p=>`<li>${citeHtml(p,sources)}</li>`).join("")}</ul>
     ${images.length?`<div class="imgrow">${images.slice(0,8).map(u=>`<img class="zoom" src="${u}" onerror="this.style.display='none'">`).join("")}</div>`:""}</div>`);
@@ -571,9 +604,18 @@ function buildDeck(d){
   $("#slides").innerHTML=slides.join("");
   $("#dots").innerHTML=slides.map(()=>`<div class="d"></div>`).join("");
   count=slides.length; idx=0; render();
+  // mini-slide thumbnails (navigable-deck affordance): one per slide
+  $("#thumbs").innerHTML = slides.map((_,i)=>{
+    const u = images[i] || images[0];
+    return u
+      ? `<div class="thumb-mini" data-i="${i}"><img src="${u}" onerror="this.parentNode.classList.add('grad');this.remove()"><span class="n">${i+1}</span></div>`
+      : `<div class="thumb-mini grad" data-i="${i}"><span class="n">${i+1}</span></div>`;
+  }).join("");
   $("#deckph").classList.add("hidden");
   $("#deckwrap").classList.remove("hidden");
 }
+// Tap any mini-slide → expand the deck full-size, from the first slide.
+$("#thumbs").addEventListener("click",(e)=>{ if(!e.target.closest(".thumb-mini"))return; idx=0; render(); maximizeDeck(); });
 function render(){
   $("#slides").style.transform=`translateX(-${idx*100}%)`;
   $("#slides").scrollTop=0;
