@@ -8,7 +8,7 @@
 <style>
   :root{
     --bg:#fbfaf8; --card:#ffffff; --ink:#15130f; --muted:#8b857c;
-    --line:#ece8e1; --accent:#f23a12; --ok:#1f9d63; --skip:#b9b3a8; --err:#d2553f;
+    --line:#ece8e1; --accent:#f23a12; --ok:#1f9d63; --skip:#b9b3a8; --err:#d2553f; --teal:#10b3a3;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--ink);
@@ -72,7 +72,12 @@
   @media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr);gap:14px}} /* desktop: 4/row */
   .tile{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:16px;overflow:hidden;
     cursor:pointer;background:#fff;display:flex;flex-direction:column;justify-content:flex-end;
-    transition:transform .12s,box-shadow .12s}
+    transition:opacity .4s,transform .12s,box-shadow .12s}
+  /* intro reveal sequence */
+  .topbar{transition:opacity .5s}#history{transition:opacity .4s}
+  body.intro .topbar{opacity:0;pointer-events:none}
+  body.intro #history{opacity:0}
+  body.intro .tile{opacity:0}
   .tile:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(0,0,0,.12)}
   .tile .thumb{position:absolute;inset:0;background-size:cover;background-position:center}
   .tile .thumb.grad{background:linear-gradient(135deg,#f23a12,#ff8a3d 60%,#ffb05a)}
@@ -112,10 +117,21 @@
   .findings.clamped{max-height:130px;overflow:hidden}
   .findings.clamped::after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,#fff)}
   .showmore{margin-top:12px}
-  /* result layout: deck above findings when opened from a tile */
-  #result{display:flex;flex-direction:column}
-  #result #backBtn{order:0}#result #flow{order:1}#result #answerCard{order:2}#result #deckSection{order:3}
-  #result.deck-top #deckSection{order:1}#result.deck-top #answerCard{order:2}
+  /* result = centered overlay modal over the still-visible tiles */
+  #result{position:fixed;inset:0;z-index:90;display:flex;align-items:flex-start;justify-content:center;
+    padding:5vh 4vw;overflow-y:auto;background:rgba(15,19,15,.55);backdrop-filter:blur(3px)}
+  .result-modal{position:relative;background:var(--bg);border-radius:20px;width:min(900px,100%);margin:auto;
+    padding:20px 20px 24px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+  .rclose{position:absolute;top:14px;right:14px;z-index:7}
+  .deckwrap{cursor:zoom-in}.deckwrap.maximized{cursor:default}
+  /* pricing modal options */
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px;text-align:left}
+  .price-opt{border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:border-color .12s,box-shadow .12s}
+  .price-opt:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,.07)}
+  .price-opt h3{margin:0 0 4px;font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink)}
+  .price-opt .cost{font-size:20px;font-weight:800;color:var(--accent);margin:4px 0}
+  .price-opt .desc{font-size:12px;color:var(--muted);line-height:1.45}
+  @media(max-width:520px){.price-grid{grid-template-columns:1fr}}
   /* deck section */
   #deckSection{margin-bottom:16px}
   .deckph{height:440px;border:1.5px dashed #d8d2c8;border-radius:18px;display:grid;place-items:center;text-align:center;
@@ -128,8 +144,20 @@
   #backdrop{position:fixed;inset:0;background:rgba(15,19,15,.6);backdrop-filter:blur(4px);z-index:94;display:none}
   #backdrop.show{display:block}
   .iconbtn{position:absolute;top:12px;z-index:6;background:rgba(255,255,255,.92);color:var(--ink);
-    border:1px solid var(--line);border-radius:9px;width:34px;height:34px;padding:0;font-size:15px;cursor:pointer}
-  .mx{right:12px}.dclose{right:12px;display:none}
+    border:1px solid var(--line);border-radius:9px;width:34px;height:34px;padding:0;font-size:15px;cursor:pointer;
+    display:grid;place-items:center}
+  .iconbtn svg{display:block}
+  .mx{left:12px;top:12px}.dclose{right:12px;display:none}
+  /* tile modal: title, deck thumbnails, research images */
+  .modal-title{font-size:20px;font-weight:720;letter-spacing:-.02em;margin:2px 40px 14px 2px;line-height:1.25}
+  .thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 2px}
+  .thumb-mini{flex:0 0 auto;width:104px;height:66px;border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:pointer;position:relative;background:#f0eee9}
+  .thumb-mini img{width:100%;height:100%;object-fit:cover}
+  .thumb-mini.grad{background:linear-gradient(135deg,#f23a12,#ff8a3d 60%,#ffb05a)}
+  .thumb-mini .n{position:absolute;left:5px;top:4px;font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.5);border-radius:5px;padding:1px 5px}
+  .res-head{margin:18px 0 10px}
+  .resimgs{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 6px}
+  .resimgs img{width:72px;height:54px;object-fit:cover;border-radius:7px;cursor:zoom-in;background:#f0eee9}
   .deckwrap.maximized .mx{display:none}.deckwrap.maximized .dclose{display:block}
   /* slideshow */
   .deck{position:relative;overflow:hidden;background:#fff;flex:1;display:flex;flex-direction:column}
@@ -156,9 +184,30 @@
   /* lightbox */
   .lb{position:fixed;inset:0;z-index:120;background:rgba(15,19,15,.86);display:none;align-items:center;justify-content:center;padding:30px;cursor:zoom-out}
   .lb.on{display:flex}.lb img{max-width:92vw;max-height:90vh;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+  /* G: address chip, escrow strip, tile hearts, run-private, wallet panel */
+  .chip.addr{cursor:pointer}.chip.addr b{font-family:ui-monospace,Menlo,monospace}
+  .escrow-strip{display:flex;gap:20px;background:#f6f4ef;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 14px}
+  .escrow-strip>div{display:flex;flex-direction:column;font-size:11px;color:var(--muted)}
+  .escrow-strip b{font-size:14px;color:var(--ink);font-weight:620}
+  .tile .like{position:absolute;bottom:9px;right:9px;z-index:3;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.42);color:#fff;font-size:12px;font-weight:600;padding:4px 9px;border-radius:999px;backdrop-filter:blur(4px);cursor:pointer;opacity:0;transition:opacity .12s}
+  .tile:hover .like,.tile .like.liked{opacity:1}.tile .like.liked{background:var(--accent)}
+  .run-wrap{position:relative;display:flex;gap:10px}
+  /* gp-wrap is placed to the right of Run so revealing it doesn't move Run */
+  .gp-wrap{position:absolute;left:calc(100% + 10px);top:0;opacity:0;pointer-events:none;transform:translateX(-6px);transition:opacity .15s,transform .15s}
+  .gp-wrap.show{opacity:1;pointer-events:auto;transform:none}
+  .run-private{background:var(--teal);white-space:nowrap;padding:16px 18px;font-size:16px}  /* same height as Run */
+  .gp-cap{display:block;text-align:center;font-size:11px;color:var(--teal);font-weight:600;margin-top:3px}
+  @media(max-width:600px){.run-wrap{flex-wrap:wrap}
+    .gp-wrap{position:static;left:auto;top:auto;opacity:1;pointer-events:auto;transform:none;width:100%;margin-top:2px}
+    .run-private{width:100%}}
+  .wallet-panel .row2{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:11px;padding:11px 13px;margin:4px 0 8px;text-align:left}
+  .wallet-panel .row2 .k{font-size:12px;color:var(--muted)}.wallet-panel .row2 .v{font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .wallet-panel .copy{background:#fff;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;width:auto}
+  .wallet-panel .confirm{background:var(--teal);width:100%}
+  .wallet-panel .confirm:disabled{opacity:.45}
 </style>
 </head>
-<body>
+<body class="intro">
 <div class="topbar">
   <div class="brand">
     <div class="logo" title="tile spree"><span class="l1"><b>t</b><b>i</b><b>l</b><b>e</b></span><span class="l2"><b>s</b><b>p</b><b>r</b><b>e</b><b>e</b></span><i class="b1"></i><i class="b2"></i><i class="b3"></i></div>
@@ -169,9 +218,10 @@
     <button id="signInBtn" class="signin">Sign in</button>
   </div>
   <div id="userBar" class="topgroup hidden">
+    <div class="chip"><span>Searches</span><b id="searchCount">0</b></div>
     <div class="chip"><span>Free left</span><b id="freeLeft">3</b></div>
     <div class="chip left"><span>Wallet</span><b id="walletBal">—</b></div>
-    <div class="chip locked"><span>Escrow</span><b id="escrowBal">0.00 USDC</b></div>
+    <div class="chip addr" id="addrChip" title="Copy address"><span>Address</span><b id="walletAddr">—</b></div>
   </div>
 </div>
 
@@ -179,117 +229,194 @@
   <!-- LANDER -->
   <div id="lander">
     <div class="hero-search">
-      <div class="row">
+      <div class="row run-wrap">
         <input id="q" placeholder="Research anything…" autocomplete="off" />
         <button id="go">Run</button>
+        <div class="gp-wrap"><button id="goPrivate" class="run-private">Run private</button><span class="gp-cap">with 0G</span></div>
       </div>
     </div>
     <div class="hidden" id="history">
-      <div class="hist-head"><h3>Explore research</h3></div>
+      <div class="hist-head"><h3>Explore</h3></div>
       <div class="grid" id="grid"></div>
     </div>
   </div>
 
-  <!-- RESULT -->
+  <!-- RESULT — centered overlay modal over the tiles -->
   <div id="result" class="hidden">
-    <button class="ghost back" id="backBtn">‹ Back to research</button>
+    <div id="backdrop"></div>
+    <div class="result-modal">
+      <button class="iconbtn rclose" id="resultClose" title="Close">✕</button>
+      <h2 class="modal-title" id="modalTitle"></h2>
 
-    <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
-
-    <div class="card narrow hidden" id="answerCard">
-      <div class="findings" id="findings">
-        <div class="answer" id="answer"></div>
-        <h3 id="srcHead" class="hidden">Sources</h3>
-        <ul class="srcs" id="sources"></ul>
+      <div class="escrow-strip hidden" id="escrowStrip">
+        <div><span>Wallet</span><b id="emWallet">—</b></div>
+        <div><span>Escrow</span><b id="emEscrow">0.00 USDC</b></div>
+        <div><span>Spent</span><b id="emSpent">0.00 USDC</b></div>
       </div>
-      <button class="ghost showmore hidden" id="showMore">Show more</button>
-    </div>
 
-    <div id="deckSection" class="hidden">
-      <div class="deckph" id="deckph">
-        <div class="cta">
-          <b>Presentation deck</b>
-          <span>Turn these findings into a slideshow with images &amp; source map.</span>
-          <button id="genDeck">✨ Generate deck</button>
-        </div>
-      </div>
-      <div class="deckwrap hidden" id="deckwrap">
-        <button class="iconbtn mx" id="mxBtn" title="Maximize">⛶</button>
-        <button class="iconbtn dclose" id="closeDeck" title="Close">✕</button>
-        <div class="deck">
-          <div class="slides" id="slides"></div>
-          <div class="nav">
-            <button class="ghost" id="prev">‹ Prev</button>
-            <div class="dots" id="dots"></div>
-            <button class="ghost" id="next">Next ›</button>
+      <div class="card hidden narrow" id="flow"><ul class="timeline" id="timeline"></ul></div>
+
+      <div id="deckSection" class="hidden">
+        <div class="deckph" id="deckph">
+          <div class="cta">
+            <b>Presentation deck</b>
+            <span>Turn these findings into a slideshow with images &amp; source map.</span>
+            <button id="genDeck">✨ Generate deck</button>
           </div>
         </div>
+        <div class="deckwrap hidden" id="deckwrap">
+          <button class="iconbtn dclose" id="closeDeck" title="Close">✕</button>
+          <div class="deck">
+            <div class="slides" id="slides"></div>
+            <div class="nav">
+              <button class="ghost" id="prev">‹ Prev</button>
+              <div class="dots" id="dots"></div>
+              <button class="ghost" id="next">Next ›</button>
+            </div>
+          </div>
+          <button class="iconbtn mx" id="mxBtn" title="Expand"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+        </div>
+        <div class="thumbs" id="thumbs"></div>
+      </div>
+
+      <div class="card narrow hidden" id="answerCard">
+        <h3 class="res-head">Research results</h3>
+        <div class="findings clamped" id="findings">
+          <div class="answer" id="answer"></div>
+          <h3 id="imgHead" class="hidden">Images</h3>
+          <div class="resimgs" id="resImages"></div>
+          <h3 id="srcHead" class="hidden">Sources</h3>
+          <ul class="srcs" id="sources"></ul>
+        </div>
+        <button class="ghost showmore" id="showMore">Show more</button>
       </div>
     </div>
   </div>
 </div>
 
-<div id="backdrop"></div>
 <div class="lb" id="lb"><img id="lbImg" alt=""></div>
 
 <div class="authwrap" id="authModal">
   <div class="authcard">
-    <h2>Scan to sign in</h2>
-    <p>Scan with your phone &amp; continue with a passkey. First 3 runs free.</p>
+    <h2 id="authTitle">Scan to sign in</h2>
+    <p id="authIntro">Scan with your phone &amp; continue with a passkey. First 3 searches free.</p>
     <div class="qrbox" id="qrBox"></div>
+    <button class="big hidden" id="authGo">🔑 Continue with passkey</button>
     <button class="skip" id="authClose">Maybe later</button>
     <div class="st" id="authSt"></div>
   </div>
 </div>
 
-<script src="/w3s.js"></script>
+<div class="authwrap" id="priceModal">
+  <div class="authcard">
+    <h2>Choose your research</h2>
+    <p>Your free searches are used up. Pick how to run this one.</p>
+    <div class="price-grid">
+      <div class="price-opt" data-mode="public">
+        <h3>🌐 Public research</h3>
+        <div class="cost" id="pubCost">0.10 USDC</div>
+        <div class="desc">Tavily + TokenFactory. Saved as a public tile others can browse.</div>
+      </div>
+      <div class="price-opt" data-mode="private">
+        <h3>🔒 Private research</h3>
+        <div class="cost" id="privCost">0.50 USDC</div>
+        <div class="desc">Reasoning runs privately in a 0G TEE, verifiable. Never published.</div>
+      </div>
+    </div>
+    <button class="skip" id="priceClose">Cancel</button>
+    <div class="st" id="priceSt"></div>
+  </div>
+</div>
+
+<div class="authwrap" id="walletModal">
+  <div class="authcard wallet-panel">
+    <h2>🔒 Run private</h2>
+    <p>Pay from your in-app wallet. Reasoning runs in a 0G TEE; result stored privately, never published.</p>
+    <div class="row2"><div><div class="k">Your wallet</div><div class="v" id="wpAddr">—</div></div><button class="copy" id="wpCopy">Copy</button></div>
+    <div class="row2"><div class="k">Balance</div><div class="v" id="wpBal">— USDC</div></div>
+    <button class="confirm" id="wpRun">Run private · <span id="wpCost">0.50 USDC</span></button>
+    <button class="skip" id="wpClose">Cancel</button>
+    <div class="st" id="wpSt"></div>
+  </div>
+</div>
 
 <script>
 const $ = (s) => document.querySelector(s);
+// Lazy-load the wallet libs (ethers is ~875KB) only when actually signing/approving on this device.
+function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+let _walletLibs = null;
+function ensureWallet(){ return _walletLibs ||= (async()=>{ await loadScript("/ethers.js"); await loadScript("/passkey-wallet.js"); })(); }
 const go = $("#go"), tl = $("#timeline");
 let LAST = null, deckData = null;
 window.__lastErr = "";
 window.addEventListener("error", e => { window.__lastErr = (e.message||"") + (e.filename ? " @ "+e.filename.split("/").pop() : ""); });
-// Demo shortcut: visit /?demo to appear signed in (skip passkey for recording).
-if (/[?&#]demo\b/.test(location.href)) {
-  localStorage.setItem("tilespree.userId","demo-user");
-  localStorage.setItem("tilespree.signedin","demo-user");
-}
+
+// Open on a phone? Then sign-in derives the wallet inline (no QR).
+const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+// Account state (self-custody wallet address). signedIn = has an address.
+let ADDR = localStorage.getItem("tilespree.address") || "";
+let ACCT = { freeLeft: 3, usdc: 0, allowance: 0 };
+let CFG = null;
+const signedIn = () => !!ADDR;
 
 const fmt = (n) => `${Number(n).toFixed(2)} USDC`;
 const linkify = (v) => String(v).startsWith("http") ? `<a href="${v}" target="_blank" rel="noopener">${v}</a>` : v;
+const shortAddr = (a) => a ? a.slice(0,6)+"…"+a.slice(-4) : "—";
+// Live balances during a paid run are shown INSIDE the modal (not the top bar).
 const setBal = (b) => {
-  if (b.locked != null) $("#escrowBal").textContent = fmt(b.locked);
-  if (b.remaining != null) $("#walletBal").textContent = fmt(b.remaining);
+  const strip = $("#escrowStrip"); if(!strip) return;
+  strip.classList.remove("hidden");
+  if (b.remaining != null) $("#emWallet").textContent = fmt(b.remaining);
+  if (b.locked != null) $("#emEscrow").textContent = fmt(b.locked);
+  if (b.spent != null) $("#emSpent").textContent = fmt(b.spent);
 };
-// Top-bar auth/free state: guest (3 free + Sign in) vs signed-in (free left, wallet, escrow).
+async function fetchChainConfig(){
+  try { CFG = await (await fetch("/api/chain/config")).json();
+    if(CFG){ $("#pubCost").textContent = fmt(CFG.feePublic); $("#privCost").textContent = fmt(CFG.feePrivate); }
+  } catch {}
+}
+async function refreshAccount(){
+  if(!signedIn()) return;
+  try { ACCT = await (await fetch("/api/account/"+ADDR)).json(); } catch {}
+  updateAuthUI();
+}
+// Top-bar: guest (free badge + Sign in) vs signed-in (free left, wallet).
 function updateAuthUI(){
-  const used = +(localStorage.getItem("tilespree.freeUsed")||0);
-  const left = Math.max(0, 3 - used);
   if (signedIn()){
     $("#guestBar").classList.add("hidden"); $("#userBar").classList.remove("hidden");
-    $("#freeLeft").textContent = left;
-    fetch("/api/ucw/balance/"+userId).then(r=>r.json()).then(b=>{ if(b&&b.balance!=null) $("#walletBal").textContent = fmt(b.balance); }).catch(()=>{});
+    $("#searchCount").textContent = ACCT.searches != null ? ACCT.searches : 0;
+    $("#freeLeft").textContent = ACCT.freeLeft != null ? ACCT.freeLeft : "—";
+    $("#walletBal").textContent = fmt(ACCT.usdc || 0);
+    $("#walletAddr").textContent = shortAddr(ADDR);
   } else {
     $("#userBar").classList.add("hidden"); $("#guestBar").classList.remove("hidden");
-    $("#freeBadge").textContent = left + " free searches";
+    $("#freeBadge").textContent = "3 free searches";
   }
 }
+// Copy wallet address from the top-bar chip.
+$("#addrChip").onclick = () => {
+  if(!ADDR) return;
+  navigator.clipboard?.writeText(ADDR);
+  const b=$("#walletAddr"), prev=b.textContent; b.textContent="copied ✓";
+  setTimeout(()=>b.textContent=shortAddr(ADDR), 900);
+};
 const esc = (s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const host = (u)=>{try{return new URL(u).hostname.replace(/^www\./,"");}catch{return u;}};
 const ago = (ts)=>{const s=(Date.now()-ts)/1000;
   return s<60?"just now":s<3600?Math.floor(s/60)+"m ago":s<86400?Math.floor(s/3600)+"h ago":Math.floor(s/86400)+"d ago";};
 
 // ---- Views ----
-function setView(v, sy){
-  $("#lander").classList.toggle("hidden", v!=="lander");
+// The result is an overlay modal layered over the lander — keep the tiles rendered behind it.
+function setView(v){
   $("#result").classList.toggle("hidden", v!=="result");
-  if (v==="lander") { restoreDeck(); renderHistory(); window.scrollTo({ top: sy ?? 0, behavior: sy!=null?"auto":"smooth" }); }
+  if (v==="lander") { restoreDeck(); renderHistory(); }
 }
-$("#backBtn").onclick = () => setView("lander");
+function closeResult(){ restoreDeck(); setView("lander"); }
+$("#resultClose").onclick = closeResult;
+$("#result").addEventListener("click", e=>{ if(e.target.id==="result") closeResult(); }); // click backdrop
 // Logo → home (lander) from anywhere; close any overlays.
 $(".brand").addEventListener("click", () => {
-  closeAuth(); restoreDeck(); $("#lb").classList.remove("on"); setView("lander");
+  closeAuth(); closePricing(); restoreDeck(); $("#lb").classList.remove("on"); setView("lander");
 });
 
 // (top-bar state set by updateAuthUI() on load — see bottom of script)
@@ -298,6 +425,7 @@ $(".brand").addEventListener("click", () => {
 function showResult(d, opts){
   opts = opts || {};
   LAST = d; deckData = d;
+  $("#modalTitle").textContent = d.query || "";
   $("#answer").innerHTML = citeHtml(d.result || "", d.sources || []);
   const ul = $("#sources"); ul.innerHTML = "";
   (d.sources||[]).forEach((s,i)=>{
@@ -305,24 +433,27 @@ function showResult(d, opts){
     li.innerHTML=`<a href="${s.url}" target="_blank" rel="noopener">[${i+1}] ${esc(s.title)}</a><span class="u">${esc(s.url)}</span>`;
     ul.appendChild(li);
   });
+  // Research results: all Tavily images as thumbnails.
+  const ri = $("#resImages"); ri.innerHTML = "";
+  (d.images||[]).forEach((im)=>{ if(!im||!im.url)return;
+    const img=document.createElement("img"); img.className="zoom"; img.src=im.url; img.alt=im.description||"";
+    img.onerror=()=>img.remove(); ri.appendChild(img); });
+  $("#imgHead").classList.toggle("hidden", !(d.images&&d.images.length));
   const hasSrc=(d.sources||[]).length;
   $("#srcHead").classList.toggle("hidden", !hasSrc);
-  $("#flow").classList.toggle("hidden", !opts.live); // timeline only for live runs
+  $("#flow").classList.add("hidden");           // finished view: no timeline (same as tile-open)
   $("#answerCard").classList.remove("hidden");
-  // clamp findings (default when opened from a tile)
-  const clamp = !!opts.clamp;
-  $("#findings").classList.toggle("clamped", clamp);
-  $("#showMore").classList.toggle("hidden", !clamp);
+  // research results collapsed by default; expand-down to browse
+  $("#findings").classList.add("clamped");
+  $("#showMore").classList.remove("hidden");
   $("#showMore").textContent = "Show more";
-  // deck section: placeholder by default; auto-build inline when opening a tile
+  // deck preview, auto-built so a finished run looks identical to opening a tile
   $("#deckSection").classList.toggle("hidden", !hasSrc);
-  $("#result").classList.toggle("deck-top", !!opts.autoDeck); // slideshow above findings on tile-open
   resetDeckToPlaceholder();
-  if (opts.autoDeck && hasSrc) { buildDeck(d); }
+  if (hasSrc) { buildDeck(d); }
   setView("result");
 }
 $("#showMore").onclick = () => {
-  if (!signedIn()) { openAuth(); return; }   // expanding full findings requires sign-in
   const c = $("#findings").classList.toggle("clamped");
   $("#showMore").textContent = c ? "Show more" : "Show less";
 };
@@ -332,23 +463,40 @@ async function renderHistory(){
   let arr=[];
   try { arr = await (await fetch("/api/searches")).json(); } catch {}
   $("#history").classList.toggle("hidden", !(arr&&arr.length));
+  const liked = new Set(ACCT.likes||[]);
   $("#grid").innerHTML = (arr||[]).map((it)=>{
     const img = it.images && it.images[0] && it.images[0].url;
     const thumb = img?`<div class="thumb" style="background-image:url('${img}')"></div>`:`<div class="thumb grad"></div>`;
-    const spent = it.economics?fmt(it.economics.spent):"—";
-    return `<div class="tile" data-id="${it.id}">${thumb}<div class="veil"></div>
+    const spent = it.economics&&it.economics.spent?fmt(it.economics.spent):"free";
+    const heart = signedIn()?`<div class="like${liked.has(it.id)?' liked':''}" data-like="${it.id}">❤ ${it.likes||0}</div>`:"";
+    return `<div class="tile" data-id="${it.id}">${thumb}<div class="veil"></div>${heart}
       <div class="q">${esc(it.query)}</div><div class="meta">${ago(it.ts)} · ${spent}</div></div>`;
   }).join("");
 }
-let cameFromTile=false, landerScrollY=0;
+async function toggleLike(id, el){
+  if(!signedIn()){ openAuth(); return; }
+  try { const r = await (await fetch("/api/searches/"+id+"/like",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({address:ADDR})})).json();
+    if(r&&r.likes!=null){ el.classList.toggle("liked",r.liked); el.innerHTML="❤ "+r.likes;
+      ACCT.likes = r.liked ? [...(ACCT.likes||[]),id] : (ACCT.likes||[]).filter(x=>x!==id); }
+  } catch {}
+}
 async function openTile(id){
   try { const it=await (await fetch("/api/searches/"+id)).json();
-    if(it&&it.result) showResult(it,{clamp:true,autoDeck:true}); } catch {}
+    if(it&&it.result) showResult(it,{clamp:true}); } catch {}
+}
+// Guests may open up to 3 tiles to preview; the 4th (or like/run) prompts sign-in.
+const PREVIEW_LIMIT = 3;
+function tileGate(id){
+  if(signedIn()) return openTile(id);
+  const n = +(localStorage.getItem("tilespree.previews")||0);
+  if(n < PREVIEW_LIMIT){ localStorage.setItem("tilespree.previews", n+1); return openTile(id); }
+  pendingAction=()=>openTile(id); openAuth();
 }
 $("#grid").addEventListener("click",(e)=>{
+  const lk=e.target.closest("[data-like]");
+  if(lk){ e.stopPropagation(); toggleLike(lk.dataset.like, lk); return; }
   const t=e.target.closest(".tile"); if(!t)return;
-  landerScrollY=window.scrollY; cameFromTile=true;   // remember where we were
-  openTile(t.dataset.id);
+  tileGate(t.dataset.id);
 });
 
 // ---- Cycling placeholder ----
@@ -356,55 +504,158 @@ const PROMPTS=["What is the history of…","The development role of…","List ev
   "Compare the approaches to…","Trace the origins of…","Why did … happen?",
   "What are the latest breakthroughs in…","Who are the key players in…",
   "Explain how … actually works","Map the landscape of…"];
-const qEl=$("#q"); let pi=0; qEl.placeholder=PROMPTS[0];
-setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
-  qEl.classList.add("phfade");
-  setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
-},2800);
+const qEl=$("#q"); let pi=0;
+function startPromptCycle(){
+  qEl.placeholder=PROMPTS[0];
+  setInterval(()=>{ if(qEl.value||document.activeElement===qEl)return;
+    qEl.classList.add("phfade");
+    setTimeout(()=>{pi=(pi+1)%PROMPTS.length;qEl.placeholder=PROMPTS[pi];qEl.classList.remove("phfade");},300);
+  },2800);
+}
+const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
+// Intro: empty input → typewrite a tagline → reveal top bar → tiles row by row → start cycling.
+async function introSequence(){
+  const text="Research any topic. Share, discover, like.";
+  qEl.placeholder="";
+  for(let i=1;i<=text.length;i++){ qEl.placeholder=text.slice(0,i); await sleep(26); }
+  await sleep(280);
+  document.querySelectorAll(".tile").forEach((t,i)=>{ t.style.transitionDelay=(i*55)+"ms"; });
+  document.body.classList.remove("intro");        // top bar fades in, tiles stagger in
+  await sleep(900);
+  document.querySelectorAll(".tile").forEach((t)=>{ t.style.transitionDelay=""; }); // reset so hover isn't delayed
+  startPromptCycle();
+}
 
 // ---- Auth gate (passkey) ----
-const USERKEY="tilespree.userId";
-let userId = localStorage.getItem(USERKEY);
-const signedIn = () => !!localStorage.getItem("tilespree.signedin");
-let previewed = false, pendingAction = null;
-function gateTile(fn){ if(signedIn())return fn(); if(!previewed){previewed=true;return fn();} pendingAction=fn; openAuth(); }
-function gateRun(fn){ if(signedIn())return fn(); pendingAction=fn; openAuth(); }
+let pendingAction = null;
 const authSt=(m,c="")=>$("#authSt").innerHTML=`<span class="${c}">${m}</span>`;
 let pollTimer=null;
-function openAuth(){ authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on"); startQrLogin(); }
+function openAuth(){
+  authSt(""); $("#qrBox").innerHTML=""; $("#authModal").classList.add("on");
+  if(IS_MOBILE){
+    // Show a CTA; the passkey prompt only fires on tap (also required: WebAuthn needs a gesture).
+    $("#authTitle").textContent = "Sign in to TileSpree";
+    $("#authIntro").textContent = "Create a passkey wallet on this device — your key stays on your phone.";
+    $("#qrBox").classList.add("hidden");
+    $("#authGo").classList.remove("hidden"); $("#authGo").disabled = false;
+  } else {
+    $("#authGo").classList.add("hidden");
+    startQrLogin();
+  }
+}
+$("#authGo").onclick = () => { $("#authGo").disabled = true; startInlinePasskey(); };
 function closeAuth(){ $("#authModal").classList.remove("on"); if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
 $("#authClose").onclick = closeAuth;
 $("#signInBtn").onclick = openAuth;
 $("#authModal").addEventListener("click",e=>{ if(e.target.id==="authModal")closeAuth(); });
-function finishAuth(uid){
-  if(uid){ userId=uid; localStorage.setItem(USERKEY,uid); }
-  localStorage.setItem("tilespree.signedin", userId);
-  authSt("You're in ✓","ok"); updateAuthUI();
-  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 700);
+async function finishAuth(address){
+  ADDR = address; localStorage.setItem("tilespree.address", address);
+  authSt("You're in ✓","ok"); await refreshAccount();
+  setTimeout(()=>{ closeAuth(); const a=pendingAction; pendingAction=null; if(a)a(); }, 600);
 }
-// Desktop shows a QR to the phone; phone completes the passkey and claims the session.
+// Desktop: show a QR; the phone generates the on-device key + WebAuthn passkey and claims the session.
 async function startQrLogin(){
   try{
+    $("#authTitle").textContent = "Scan to sign in";
+    $("#authIntro").textContent = "Scan with your phone — it creates a passkey wallet on your device. First 3 searches free.";
+    $("#qrBox").classList.remove("hidden");
     const s = await (await fetch("/api/session/new",{method:"POST"})).json();
     const url = s.mobileUrl.startsWith("http") ? s.mobileUrl : (location.origin + s.mobileUrl);
     $("#qrBox").innerHTML = `<img alt="Scan to sign in" src="https://api.qrserver.com/v1/create-qr-code/?size=216x216&margin=6&data=${encodeURIComponent(url)}">`;
-    authSt(s.hasBase ? "Scan with your phone to continue" : `Set PUBLIC_BASE_URL (tunnel) so a phone can reach this · <a href="${url}" target="_blank">open on this device</a>`);
+    authSt(s.hasBase ? "Scan with your phone to continue" : `Set PUBLIC_BASE_URL so a phone can reach this · <a href="${url}" target="_blank">open here</a>`);
     pollTimer = setInterval(async()=>{
       try{ const r = await (await fetch("/api/session/"+s.sid)).json();
-        if(r.status==="authed"){ clearInterval(pollTimer); pollTimer=null; finishAuth(r.userId); } }catch{}
+        if(r.status==="authed" && r.address){ clearInterval(pollTimer); pollTimer=null; finishAuth(r.address); } }catch{}
     }, 1600);
   }catch(e){ authSt("Error: "+e.message,"err"); }
 }
+// Mobile: no QR — generate the key + WebAuthn passkey on THIS device, then claim.
+async function startInlinePasskey(){
+  try{
+    $("#authTitle").textContent = "Create your passkey wallet";
+    $("#authIntro").textContent = "Authenticate with your device passkey — your wallet key is generated and stays on this phone.";
+    $("#qrBox").classList.add("hidden");
+    authSt("Loading…"); await ensureWallet();
+    if(!window.PasskeyWallet) throw new Error("wallet module not loaded");
+    const s = await (await fetch("/api/session/new",{method:"POST"})).json();
+    authSt("Complete the passkey prompt…");
+    const { address, sig, message } = await window.PasskeyWallet.connect(s.sid);
+    const r = await (await fetch(`/api/session/${s.sid}/claim`,{method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({ address, sig, message })})).json();
+    if(r.error) throw new Error(r.error);
+    finishAuth(r.address || address);
+  }catch(e){ authSt("Failed: "+(e.message||e),"err"); $("#authGo").disabled=false; }
+}
+
+// ---- Pricing modal (after free searches used) ----
+let pricePending = null;
+const priceSt=(m,c="")=>$("#priceSt").innerHTML=`<span class="${c}">${m}</span>`;
+function openPricing(q){ pricePending=q; priceSt(""); $("#priceModal").classList.add("on"); }
+function closePricing(){ $("#priceModal").classList.remove("on"); pricePending=null; }
+$("#priceClose").onclick = closePricing;
+$("#priceModal").addEventListener("click",e=>{ if(e.target.id==="priceModal")closePricing(); });
+document.querySelectorAll(".price-opt").forEach(opt=>opt.onclick=()=>{
+  const mode=opt.dataset.mode, q=pricePending;
+  if(CFG && CFG.configured){
+    if((ACCT.usdc||0) < (CFG.price||1)){ priceSt("Not enough USDC — open the app on your phone to fund your wallet.","err"); return; }
+    if((ACCT.allowance||0) < (CFG.price||1)){ priceSt("Authorize spending on your phone first (Fund & authorize).","err"); return; }
+  } else { priceSt("Payments aren't set up on this server yet.","err"); return; }
+  closePricing(); doRun(q, mode, true);
+});
 
 // ---- Run a query ----
-function doRun(q){
+// Sign-in gate → free run (public) → else pricing modal.
+function requestRun(q){
+  if(!signedIn()){ pendingAction=()=>requestRun(q); openAuth(); return; }
+  if((ACCT.freeLeft||0) > 0){ doRun(q,"public",false); }
+  else { openPricing(q); }
+}
+
+// ---- Run private (wallet panel) ----
+let privatePending = null;
+function openWallet(q){
+  privatePending=q; $("#wpSt").innerHTML="";
+  $("#wpAddr").textContent = ADDR; $("#wpBal").textContent = fmt(ACCT.usdc||0);
+  const fee = CFG ? CFG.feePrivate : 0.5;
+  $("#wpCost").textContent = fmt(fee);
+  const ok = CFG && CFG.configured && (ACCT.usdc||0) >= (CFG.price||1) && (ACCT.allowance||0) >= (CFG.price||1);
+  $("#wpRun").disabled = !ok;
+  if(!CFG || !CFG.configured) $("#wpSt").innerHTML='<span class="err">Payments not set up on this server yet.</span>';
+  else if((ACCT.usdc||0) < (CFG.price||1)) $("#wpSt").innerHTML='<span class="err">Not enough USDC — fund this wallet on your phone.</span>';
+  else if((ACCT.allowance||0) < (CFG.price||1)) $("#wpSt").innerHTML='<span class="err">Authorize spending on your phone first.</span>';
+  $("#walletModal").classList.add("on");
+}
+function closeWallet(){ $("#walletModal").classList.remove("on"); privatePending=null; }
+function requestPrivate(q){
+  if(!signedIn()){ pendingAction=()=>requestPrivate(q); openAuth(); return; }
+  openWallet(q);
+}
+$("#wpClose").onclick = closeWallet;
+$("#walletModal").addEventListener("click",e=>{ if(e.target.id==="walletModal")closeWallet(); });
+$("#wpCopy").onclick = () => { navigator.clipboard?.writeText(ADDR); $("#wpCopy").textContent="Copied ✓"; setTimeout(()=>$("#wpCopy").textContent="Copy",900); };
+$("#wpRun").onclick = () => { const q=privatePending; closeWallet(); doRun(q,"private",true); };
+$("#goPrivate").onclick = () => { const q=qEl.value.trim(); if(!q)return; requestPrivate(q); };
+// Desktop: reveal "Run private" while hovering Run OR the button itself (it's positioned outside the
+// row, so track both with a small grace delay so it stays clickable).
+let _gpTimer=null;
+const showGP = () => { clearTimeout(_gpTimer); $(".gp-wrap").classList.add("show"); };
+const hideGP = () => { _gpTimer = setTimeout(()=>$(".gp-wrap").classList.remove("show"), 220); };
+$("#go").addEventListener("mouseenter", showGP);
+$("#go").addEventListener("mouseleave", hideGP);
+$(".gp-wrap").addEventListener("mouseenter", showGP);
+$(".gp-wrap").addEventListener("mouseleave", hideGP);
+function doRun(q, mode, paid){
   go.disabled=true; tl.innerHTML="";
-  setView("result");
+  // open the modal in its "running" state: show THIS query, live timeline, deck/answer hidden until done
+  $("#modalTitle").textContent = q;
+  $("#escrowStrip").classList.add("hidden");
+  $("#answer").innerHTML = ""; $("#sources").innerHTML = ""; $("#resImages").innerHTML = "";
   $("#flow").classList.remove("hidden");
   $("#answerCard").classList.add("hidden");
   $("#deckSection").classList.add("hidden");
+  setView("result");
 
-  const es=new EventSource("/api/run?q="+encodeURIComponent(q));
+  const es=new EventSource("/api/run?q="+encodeURIComponent(q)+"&address="+ADDR+"&mode="+mode);
   es.addEventListener("balance",(e)=>setBal(JSON.parse(e.data)));
   es.addEventListener("step",(e)=>{
     const s=JSON.parse(e.data);
@@ -417,15 +668,24 @@ function doRun(q){
   });
   es.addEventListener("done",(e)=>{
     const d=JSON.parse(e.data);
-    if(d.economics){ $("#walletBal").textContent=fmt(d.economics.remaining); $("#escrowBal").textContent=fmt(0); }
-    const used=+(localStorage.getItem("tilespree.freeUsed")||0)+1; localStorage.setItem("tilespree.freeUsed",used); updateAuthUI();
-    if(d.result){ showResult(d,{clamp:false,autoDeck:false,live:true}); setTimeout(()=>$("#deckSection").scrollIntoView({behavior:"smooth",block:"center"}),150); }
+    if(d.freeLeft!=null) ACCT.freeLeft=d.freeLeft;
+    refreshAccount();
+    // finished modal looks identical to opening a tile (deck preview + data, no timeline)
+    if(d.result){ showResult(d,{clamp:false}); }
     es.close(); go.disabled=false;
   });
-  es.addEventListener("fatal",(e)=>{ $("#answer").textContent="Error: "+(JSON.parse(e.data).error||"unknown"); $("#answerCard").classList.remove("hidden"); es.close(); go.disabled=false; });
+  es.addEventListener("fatal",(e)=>{
+    const err=JSON.parse(e.data);
+    $("#flow").classList.add("hidden"); $("#deckSection").classList.add("hidden");
+    $("#answer").textContent = err.needApprove
+      ? "Authorize spending on your phone first (Fund & authorize), then try again."
+      : "Error: "+(err.error||"unknown");
+    $("#srcHead").classList.add("hidden"); $("#answerCard").classList.remove("hidden");
+    es.close(); go.disabled=false;
+  });
   es.onerror=()=>{ es.close(); go.disabled=false; };
 }
-go.onclick = () => { const q=qEl.value.trim(); if(!q)return; gateRun(()=>doRun(q)); };
+go.onclick = () => { const q=qEl.value.trim(); if(!q)return; requestRun(q); };
 
 // ---- Citations + slide helpers ----
 function citeHtml(text,sources){
@@ -449,7 +709,9 @@ function buildDeck(d){
   const sources=d.sources||[], images=(d.images||[]).map(i=>i.url);
   const pts=toPoints(d.result||"");
   const slides=[];
-  slides.push(`<div class="slide"><div class="kicker">Research Findings</div>
+  slides.push(`<div class="slide">
+    ${images[0]?`<img class="hero zoom" src="${images[0]}" onerror="this.style.display='none'">`:""}
+    <div class="kicker">Research Findings</div>
     <h2>${esc(d.query)}</h2><p class="lead">Key takeaways</p>
     <ul class="pts ${pts.length>3?"twocol":""}">${pts.map(p=>`<li>${citeHtml(p,sources)}</li>`).join("")}</ul>
     ${images.length?`<div class="imgrow">${images.slice(0,8).map(u=>`<img class="zoom" src="${u}" onerror="this.style.display='none'">`).join("")}</div>`:""}</div>`);
@@ -470,9 +732,18 @@ function buildDeck(d){
   $("#slides").innerHTML=slides.join("");
   $("#dots").innerHTML=slides.map(()=>`<div class="d"></div>`).join("");
   count=slides.length; idx=0; render();
+  // mini-slide thumbnails (navigable-deck affordance): one per slide
+  $("#thumbs").innerHTML = slides.map((_,i)=>{
+    const u = images[i] || images[0];
+    return u
+      ? `<div class="thumb-mini" data-i="${i}"><img src="${u}" onerror="this.parentNode.classList.add('grad');this.remove()"><span class="n">${i+1}</span></div>`
+      : `<div class="thumb-mini grad" data-i="${i}"><span class="n">${i+1}</span></div>`;
+  }).join("");
   $("#deckph").classList.add("hidden");
   $("#deckwrap").classList.remove("hidden");
 }
+// Tap any mini-slide → expand the deck full-size, from the first slide.
+$("#thumbs").addEventListener("click",(e)=>{ if(!e.target.closest(".thumb-mini"))return; idx=0; render(); maximizeDeck(); });
 function render(){
   $("#slides").style.transform=`translateX(-${idx*100}%)`;
   $("#slides").scrollTop=0;
@@ -486,14 +757,17 @@ $("#next").onclick=()=>{ if(deckGated())return; if(idx<count-1){idx++;render();}
 
 function maximizeDeck(){ $("#deckwrap").classList.add("maximized"); $("#backdrop").classList.add("show"); }
 function restoreDeck(){ $("#deckwrap").classList.remove("maximized"); $("#backdrop").classList.remove("show"); }
-// Close expanded deck → if opened from a tile, return to the lander where we were.
-function dismissDeck(){
-  restoreDeck();
-  if(cameFromTile){ cameFromTile=false; setView("lander", landerScrollY); }
-}
+// Expanded deck X / backdrop → collapse back to the preview inside the modal (stay in the modal).
+function dismissDeck(){ restoreDeck(); }
 $("#mxBtn").onclick=maximizeDeck;
 $("#closeDeck").onclick=dismissDeck;
 $("#backdrop").onclick=dismissDeck;
+// Click the deck preview to expand to full size (ignore clicks on nav buttons / links / images).
+$("#deckwrap").addEventListener("click",(e)=>{
+  if($("#deckwrap").classList.contains("maximized"))return;
+  if(e.target.closest("button, a, img"))return;
+  maximizeDeck();
+});
 
 // ---- Lightbox ----
 document.addEventListener("click",(e)=>{ if(e.target.matches("img.zoom")){ $("#lbImg").src=e.target.src; $("#lb").classList.add("on"); } });
@@ -510,8 +784,13 @@ document.addEventListener("keydown",(e)=>{
 });
 
 qEl.addEventListener("keydown",(e)=>{ if(e.key==="Enter")go.click(); });
-renderHistory();
+
+// ---- Init ----
+fetchChainConfig();
 updateAuthUI();
+renderHistory().then(introSequence);
+setTimeout(()=>document.body.classList.remove("intro"), 5000); // safety: never stay hidden
+if(signedIn()) refreshAccount();
 </script>
 </body>
 </html>

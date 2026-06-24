@@ -1,10 +1,14 @@
-// Agent runtime — Circle (pay+escrow) + Tavily (research) + TokenFactory (inference).
-// Query -> pay(user->escrow) -> Tavily -> inference -> settle(fee) -> refund -> answer.
+// Agent runtime — on-chain USDC escrow (0G testnet) + Tavily research + inference.
+// Free runs: app pays, no chain. Paid runs: pay(user→escrow) → research →
+// inference (public=TokenFactory, private=0G TEE) → settle(fee→agent) → refund.
 import { answer } from "./llm.js";
+import { zgConfigured } from "./zg.js";
+import { zgStorageConfigured, uploadJson } from "./zgstorage.js";
+import { ZG_EXPLORER } from "./config.js";
 import { research, tavilyConfigured, type Source } from "./tavily.js";
 import {
-  circleConfigured, payToEscrow, settleToAgent, refundToUser, usdcBalance, WALLETS,
-} from "./circle.js";
+  chainConfigured, payToEscrow, settleToAgent, refundToUser, usdcBalance,
+} from "./chain.js";
 
 export type Step = {
   key: string; label: string; status: "ok" | "skip" | "error";
@@ -17,39 +21,51 @@ export type RunResult = {
   sources: Source[];
   images: { url: string; description?: string }[];
   query: string;
-  economics: { deposited: number; spent: number; refunded: number; remaining: number; before: number };
+  mode: "public" | "private";
+  verified: boolean | null;
+  storageHash: string;   // 0G Storage root hash for private results ("" otherwise)
+  economics: { deposited: number; spent: number; refunded: number; remaining: number; before: number; paid: boolean };
 };
 
-// Live balance snapshot for the sticky bar: remaining (in user wallet),
-// locked (held in escrow), spent (gone to agent).
+export type RunOpts = { userAddress?: string; paid?: boolean; mode?: "public" | "private" };
+
+// Live balance snapshot for the sticky bar.
 export type Balance = { remaining: number; locked: number; spent: number };
 
-export const PRICE = Number(process.env.PRICE_USDC || "1.00");      // user pays this into escrow
-export const FEE = Number(process.env.AGENT_FEE_USDC || "0.25");    // flat fee to agent
-const REFUND = Math.max(0, PRICE - FEE);
+export const PRICE = Number(process.env.PRICE_USDC || "1.00");          // escrow deposit (max)
+export const FEE_PUBLIC = Number(process.env.FEE_PUBLIC_USDC || "0.10"); // public research cost
+export const FEE_PRIVATE = Number(process.env.FEE_PRIVATE_USDC || "0.50"); // private (0G) cost
 
 export async function runFlow(
   query: string,
+  opts: RunOpts = {},
   emit: (s: Step) => void = () => {},
   onBalance: (b: Balance) => void = () => {},
 ): Promise<RunResult> {
+  const mode = opts.mode === "private" ? "private" : "public";
+  const paid = Boolean(opts.paid);
+  const userAddress = opts.userAddress || "";
+  const FEE = mode === "private" ? FEE_PRIVATE : FEE_PUBLIC;
+  const REFUND = Math.max(0, PRICE - FEE);
+
   const steps: Step[] = [];
   const push = (s: Step) => { steps.push(s); emit(s); return s; };
-  const hasCircle = circleConfigured();
+  const onChain = paid && chainConfigured() && !!userAddress;
 
   let before = 0;
-  if (hasCircle) { try { before = await usdcBalance(WALLETS.user); } catch {} }
+  if (onChain) { try { before = await usdcBalance(userAddress); } catch {} }
   const bal = (locked: number, spent: number) =>
     onBalance({ remaining: Math.max(0, before - locked - spent), locked, spent });
   bal(0, 0);
 
-  // 1. Circle payment: user -> escrow.
-  push(await safe("pay", "Circle payment (user → escrow)", async () => {
-    if (!hasCircle) return { status: "skip", detail: "Circle not set up" };
-    const r = await payToEscrow(PRICE);
+  // 1. Payment: user -> escrow (skipped for free runs).
+  push(await safe("pay", "Payment (user → escrow)", async () => {
+    if (!paid) return { status: "skip", detail: "Free search — app pays" };
+    if (!onChain) return { status: "skip", detail: "On-chain payments not configured" };
+    const r = await payToEscrow(userAddress, PRICE);
     return { detail: `Escrowed ${PRICE} USDC`, artifact: txArt(r, `${PRICE} USDC`) };
   }));
-  if (hasCircle) bal(PRICE, 0); // PRICE now locked in escrow
+  if (onChain) bal(PRICE, 0);
 
   // 2. Tavily research.
   let context = "";
@@ -62,38 +78,69 @@ export async function runFlow(
     return { detail: `${sources.length} sources · ${images.length} images`, artifact: { topResult: sources[0]?.url ?? "—" } };
   }));
 
-  // 3. TokenFactory inference (grounded in research).
+  // 3. Inference — private = 0G TEE (verifiable), public = TokenFactory.
   let result = "";
-  push(await safe("inference", "TokenFactory inference", async () => {
-    const a = await answer(query, context || undefined);
+  let verified: boolean | null = null;
+  const wants0g = mode === "private";
+  const inferLabel = wants0g && zgConfigured()
+    ? "0G Compute · private inference (TEE)"
+    : wants0g ? "Private inference (0G — fallback)" : "TokenFactory inference";
+  push(await safe("inference", inferLabel, async () => {
+    const a = await answer(query, context || undefined, { provider: wants0g ? "0g" : "nebius" });
     result = a.text;
-    return { detail: `Model: ${a.model}`, artifact: {
+    verified = a.verified ?? null;
+    const art: Record<string, string | number> = {
       model: a.model,
       tokens: a.usage ? `${a.usage.prompt_tokens}+${a.usage.completion_tokens}` : "n/a",
-    } };
+    };
+    let detail = `Model: ${a.model}`;
+    if (a.provider === "0g") {
+      detail = `0G TEE · ${a.model}`;
+      art.network = "0G testnet";
+      art.tee = a.verified === true ? "verified ✓"
+        : a.verified === false ? "verification failed ✗"
+        : "attested (TEE)";
+      if (a.verifyUrl) art.provider = a.verifyUrl;
+    }
+    return { detail, artifact: art };
   }));
 
+  // 3b. Private results are persisted to 0G Storage (we keep only the hash).
+  let storageHash = "";
+  if (mode === "private") {
+    push(await safe("storage", "0G Storage (private result)", async () => {
+      if (!zgStorageConfigured()) return { status: "skip", detail: "0G Storage not configured" };
+      const r = await uploadJson({ query, result, sources, images, ts: Date.now() });
+      storageHash = r.rootHash;
+      return { detail: "Result stored privately on 0G Storage", artifact: {
+        hash: r.rootHash, tx: r.txHash ? `${ZG_EXPLORER}/tx/${r.txHash}` : "—",
+      } };
+    }));
+  }
+
   // 4. Settle flat fee: escrow -> agent.
-  push(await safe("settle", "Circle settle (fee → agent)", async () => {
-    if (!hasCircle) return { status: "skip", detail: "Circle not set up" };
+  push(await safe("settle", "Settle (fee → agent)", async () => {
+    if (!paid) return { status: "skip", detail: "Free search" };
+    if (!onChain) return { status: "skip", detail: "On-chain payments not configured" };
     const r = await settleToAgent(FEE);
     return { detail: `Fee ${FEE} USDC → agent`, artifact: txArt(r, `${FEE} USDC`) };
   }));
-  if (hasCircle) bal(REFUND, FEE); // fee spent; REFUND still locked pending refund
+  if (onChain) bal(REFUND, FEE);
 
   // 5. Refund remainder: escrow -> user.
-  push(await safe("refund", "Circle refund (remainder → user)", async () => {
-    if (!hasCircle) return { status: "skip", detail: "Circle not set up" };
-    const r = await refundToUser(REFUND);
+  push(await safe("refund", "Refund (remainder → user)", async () => {
+    if (!paid) return { status: "skip", detail: "Free search" };
+    if (!onChain) return { status: "skip", detail: "On-chain payments not configured" };
+    const r = await refundToUser(userAddress, REFUND);
     return { detail: `Refunded ${REFUND} USDC`, artifact: txArt(r, `${REFUND} USDC`) };
   }));
-  if (hasCircle) bal(0, FEE); // escrow released; only the fee is spent
+  if (onChain) bal(0, FEE);
 
-  const spent = hasCircle ? FEE : 0;
-  const remaining = hasCircle ? Math.max(0, before - spent) : 0;
+  const spent = onChain ? FEE : 0;
+  const remaining = onChain ? Math.max(0, before - spent) : 0;
   return {
-    steps, result, sources, images, query,
-    economics: { deposited: PRICE, spent, refunded: REFUND, remaining, before },
+    steps, result, sources, images, query, mode, verified, storageHash,
+    economics: { deposited: paid ? PRICE : 0, spent, refunded: onChain ? REFUND : 0, remaining, before, paid },
   };
 }
 
