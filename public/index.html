@@ -139,8 +139,10 @@
   #backdrop{position:fixed;inset:0;background:rgba(15,19,15,.6);backdrop-filter:blur(4px);z-index:94;display:none}
   #backdrop.show{display:block}
   .iconbtn{position:absolute;top:12px;z-index:6;background:rgba(255,255,255,.92);color:var(--ink);
-    border:1px solid var(--line);border-radius:9px;width:34px;height:34px;padding:0;font-size:15px;cursor:pointer}
-  .mx{right:12px;top:auto;bottom:12px}.dclose{right:12px;display:none}
+    border:1px solid var(--line);border-radius:9px;width:34px;height:34px;padding:0;font-size:15px;cursor:pointer;
+    display:grid;place-items:center}
+  .iconbtn svg{display:block}
+  .mx{left:12px;top:12px}.dclose{right:12px;display:none}
   /* tile modal: title, deck thumbnails, research images */
   .modal-title{font-size:20px;font-weight:720;letter-spacing:-.02em;margin:2px 40px 14px 2px;line-height:1.25}
   .thumbs{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 2px}
@@ -213,6 +215,7 @@
 
   <!-- RESULT — centered overlay modal over the tiles -->
   <div id="result" class="hidden">
+    <div id="backdrop"></div>
     <div class="result-modal">
       <button class="iconbtn rclose" id="resultClose" title="Close">✕</button>
       <h2 class="modal-title" id="modalTitle"></h2>
@@ -237,7 +240,7 @@
               <button class="ghost" id="next">Next ›</button>
             </div>
           </div>
-          <button class="iconbtn mx" id="mxBtn" title="Expand">⛶</button>
+          <button class="iconbtn mx" id="mxBtn" title="Expand"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
         </div>
         <div class="thumbs" id="thumbs"></div>
       </div>
@@ -257,7 +260,6 @@
   </div>
 </div>
 
-<div id="backdrop"></div>
 <div class="lb" id="lb"><img id="lbImg" alt=""></div>
 
 <div class="authwrap" id="authModal">
@@ -292,8 +294,8 @@
   </div>
 </div>
 
-<script src="/ethers.js"></script>
-<script src="/passkey-wallet.js"></script>
+<script defer src="/ethers.js"></script>
+<script defer src="/passkey-wallet.js"></script>
 
 <script>
 const $ = (s) => document.querySelector(s);
@@ -521,7 +523,9 @@ function requestRun(q){
 }
 function doRun(q, mode, paid){
   go.disabled=true; tl.innerHTML="";
-  // open the modal in its "running" state: live timeline, deck/answer hidden until done
+  // open the modal in its "running" state: show THIS query, live timeline, deck/answer hidden until done
+  $("#modalTitle").textContent = q;
+  $("#answer").innerHTML = ""; $("#sources").innerHTML = ""; $("#resImages").innerHTML = "";
   $("#flow").classList.remove("hidden");
   $("#answerCard").classList.add("hidden");
   $("#deckSection").classList.add("hidden");
