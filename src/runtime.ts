@@ -3,6 +3,8 @@
 // inference (public=TokenFactory, private=0G TEE) → settle(fee→agent) → refund.
 import { answer } from "./llm.js";
 import { zgConfigured } from "./zg.js";
+import { zgStorageConfigured, uploadJson } from "./zgstorage.js";
+import { ZG_EXPLORER } from "./config.js";
 import { research, tavilyConfigured, type Source } from "./tavily.js";
 import {
   chainConfigured, payToEscrow, settleToAgent, refundToUser, usdcBalance,
@@ -21,6 +23,7 @@ export type RunResult = {
   query: string;
   mode: "public" | "private";
   verified: boolean | null;
+  storageHash: string;   // 0G Storage root hash for private results ("" otherwise)
   economics: { deposited: number; spent: number; refunded: number; remaining: number; before: number; paid: boolean };
 };
 
@@ -102,6 +105,19 @@ export async function runFlow(
     return { detail, artifact: art };
   }));
 
+  // 3b. Private results are persisted to 0G Storage (we keep only the hash).
+  let storageHash = "";
+  if (mode === "private") {
+    push(await safe("storage", "0G Storage (private result)", async () => {
+      if (!zgStorageConfigured()) return { status: "skip", detail: "0G Storage not configured" };
+      const r = await uploadJson({ query, result, sources, images, ts: Date.now() });
+      storageHash = r.rootHash;
+      return { detail: "Result stored privately on 0G Storage", artifact: {
+        hash: r.rootHash, tx: r.txHash ? `${ZG_EXPLORER}/tx/${r.txHash}` : "—",
+      } };
+    }));
+  }
+
   // 4. Settle flat fee: escrow -> agent.
   push(await safe("settle", "Settle (fee → agent)", async () => {
     if (!paid) return { status: "skip", detail: "Free search" };
@@ -123,7 +139,7 @@ export async function runFlow(
   const spent = onChain ? FEE : 0;
   const remaining = onChain ? Math.max(0, before - spent) : 0;
   return {
-    steps, result, sources, images, query, mode, verified,
+    steps, result, sources, images, query, mode, verified, storageHash,
     economics: { deposited: paid ? PRICE : 0, spent, refunded: onChain ? REFUND : 0, remaining, before, paid },
   };
 }

@@ -22,3 +22,6 @@ export const ZG_CHAIN_ID = Number(process.env.ZG_CHAIN_ID || "16602"); // 0G tes
 export const OPERATOR_PRIVATE_KEY = process.env.OPERATOR_PRIVATE_KEY || ZG_PRIVATE_KEY;
 export const USDC_ADDRESS = process.env.USDC_ADDRESS || ""; // deployed MockUSDC (scripts/deploy-usdc.ts)
 export const AGENT_ADDRESS = process.env.AGENT_ADDRESS || ""; // fee recipient; defaults to operator addr
+
+// 0G Storage — private research results are stored here (hash kept in DB). Same ZG_PRIVATE_KEY pays.
+export const ZG_INDEXER_RPC = process.env.ZG_INDEXER_RPC || "https://indexer-storage-testnet-turbo.0g.ai";

@@ -41,6 +41,10 @@ db.exec(`CREATE TABLE IF NOT EXISTS accounts (
 db.exec(`CREATE TABLE IF NOT EXISTS likes (
   address TEXT, search_id TEXT, ts INTEGER, PRIMARY KEY (address, search_id)
 )`);
+// Private results: owner + 0G Storage hash only (no content kept here).
+db.exec(`CREATE TABLE IF NOT EXISTS private_results (
+  id TEXT PRIMARY KEY, owner TEXT, storage_hash TEXT, ts INTEGER
+)`);
 
 const hydrate = (row: any): SearchRecord => ({
   id: row.id, query: row.query, result: row.result,
@@ -96,6 +100,18 @@ export function toggleLike(address: string, searchId: string): { likes: number; 
 }
 export function likedIds(address: string): string[] {
   return db.prepare(`SELECT search_id FROM likes WHERE address = ?`).all(address.toLowerCase()).map((r: any) => r.search_id);
+}
+
+// --- private results (hash-only; content lives on 0G Storage) ---
+export function savePrivate(owner: string, storageHash: string): { id: string } {
+  const id = randomUUID();
+  db.prepare(`INSERT INTO private_results (id, owner, storage_hash, ts) VALUES (?,?,?,?)`)
+    .run(id, owner.toLowerCase(), storageHash, Date.now());
+  return { id };
+}
+export function listPrivate(owner: string): { id: string; storageHash: string; ts: number }[] {
+  return db.prepare(`SELECT id, storage_hash as storageHash, ts FROM private_results WHERE owner = ? ORDER BY ts DESC LIMIT 50`)
+    .all(owner.toLowerCase()) as any[];
 }
 
 // --- accounts (free-tier counter, keyed by wallet address) ---

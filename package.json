@@ -15,6 +15,7 @@
   "type": "module",
   "dependencies": {
     "@0gfoundation/0g-compute-ts-sdk": "^0.8.4",
+    "@0glabs/0g-ts-sdk": "^0.3.3",
     "@circle-fin/developer-controlled-wallets": "^10.6.0",
     "@circle-fin/user-controlled-wallets": "^10.6.0",
     "@circle-fin/w3s-pw-web-sdk": "^1.1.11",

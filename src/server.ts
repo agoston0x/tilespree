@@ -9,8 +9,9 @@ import {
 import { verifyLogin } from "./wallet.js";
 import {
   saveSearch, listSearches, getSearch, clearSearches,
-  toggleLike, likedIds, getAccount, bumpFreeUsed,
+  toggleLike, likedIds, getAccount, bumpFreeUsed, savePrivate,
 } from "./db.js";
+import { downloadJson } from "./zgstorage.js";
 import {
   ZG_CHAIN_ID, ZG_RPC_URL, ZG_EXPLORER, USDC_ADDRESS, AGENT_ADDRESS,
 } from "./config.js";
@@ -114,6 +115,12 @@ app.post("/api/searches/:id/like", (req, res) => {
   res.json(toggleLike(address, req.params.id));
 });
 
+// --- fetch a private result back from 0G Storage by hash ---
+app.get("/api/private/:hash", async (req, res) => {
+  try { res.json(await downloadJson(String(req.params.hash))); }
+  catch (e: any) { res.status(502).json({ error: e.message }); }
+});
+
 // --- run a query (SSE) ---
 app.get("/api/run", async (req, res) => {
   const query = String(req.query.q || "").trim();
@@ -148,17 +155,19 @@ app.get("/api/run", async (req, res) => {
 
     if (!paid) bumpFreeUsed(address);
 
-    // Public results become tiles; private results stay with the user only.
+    // Public results become public tiles; private results are stored on 0G Storage (hash only).
     let id = "";
     if (r.result && mode === "public") {
       id = saveSearch({
         query: r.query, result: r.result, sources: r.sources, images: r.images,
         economics: r.economics, visibility: "public", owner: address.toLowerCase(),
       }).id;
+    } else if (r.result && mode === "private" && r.storageHash) {
+      id = savePrivate(address, r.storageHash).id;
     }
     send("done", {
       id, result: r.result, sources: r.sources, images: r.images, query: r.query,
-      mode: r.mode, verified: r.verified, economics: r.economics,
+      mode: r.mode, verified: r.verified, storageHash: r.storageHash, economics: r.economics,
       freeLeft: Math.max(0, FREE_LIMIT - getAccount(address).freeUsed),
     });
   } catch (e: any) {
