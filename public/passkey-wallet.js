@@ -19,7 +19,8 @@
         rp: { name: RP_NAME, id: location.hostname },
         user: { id: rnd(16), name: "tilespree", displayName: "TileSpree user" },
         pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
-        authenticatorSelection: { residentKey: "required", userVerification: "required" },
+        authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
+        hints: ["client-device"],
         extensions: { prf: {} },
       },
     });
@@ -27,13 +28,13 @@
     return cred.rawId;
   }
 
-  // Assert with the PRF extension; returns the 32-byte secret or null if unsupported.
+  // Assert THIS device's stored passkey with the PRF extension; returns the 32-byte secret or null.
   async function prfSecret(rawId) {
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge: rnd(32),
         rpId: location.hostname,
-        allowCredentials: rawId ? [{ type: "public-key", id: rawId }] : [],
+        allowCredentials: [{ type: "public-key", id: rawId, transports: ["internal"] }],
         userVerification: "required",
         extensions: { prf: { eval: { first: PRF_SALT } } },
       },
@@ -46,13 +47,11 @@
   async function deriveWallet() {
     if (_wallet) return { wallet: _wallet, mode: _wallet._mode };
     try {
-      let stored = localStorage.getItem("tilespree.credId");
-      let rawId = stored ? b64u.dec(stored) : null;
-      let secret = null;
-      try { secret = await prfSecret(rawId); }
-      catch (e) { if (!rawId) throw e; secret = null; }       // stored cred gone/invalid
-      if (!secret && !rawId) { rawId = await createCredential(); secret = await prfSecret(rawId); }
-      if (!secret) { rawId = await createCredential(); secret = await prfSecret(rawId); }
+      // Create the passkey on FIRST use (pinned to this device); reuse the stored one after.
+      // No discoverable get() — that's what triggered the cross-device "another QR" chooser.
+      const stored = localStorage.getItem("tilespree.credId");
+      const rawId = stored ? b64u.dec(stored) : await createCredential();
+      const secret = await prfSecret(rawId);
       if (secret) {
         const pk = window.ethers.keccak256(secret);           // deterministic 32-byte private key
         _wallet = new window.ethers.Wallet(pk); _wallet._mode = "passkey-prf";
@@ -69,6 +68,12 @@
   const ERC20_ABI = ["function approve(address spender, uint256 amount) returns (bool)", "function allowance(address owner, address spender) view returns (uint256)"];
 
   window.PasskeyWallet = {
+    // Forget the linked passkey/wallet on THIS device (for re-testing). The OS passkey itself
+    // can also be deleted in the device's passkey settings.
+    reset() {
+      _wallet = null;
+      ["tilespree.credId", "tilespree.deviceKey", "tilespree.address"].forEach((k) => localStorage.removeItem(k));
+    },
     // Derive the wallet and sign a session-bound proof of control.
     async connect(sid) {
       const { wallet, mode } = await deriveWallet();
